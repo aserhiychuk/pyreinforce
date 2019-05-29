@@ -19,10 +19,11 @@ class SimpleAgent(Agent):
     '''
     TODO Simple Agent class
     '''
-    def __init__(self, n_episodes, env):
+    def __init__(self, n_episodes, env, preprocess_state=None):
         super().__init__()
         self._n_episodes = n_episodes
         self._env = env
+        self._preprocess_state = preprocess_state
 
     def run(self):
         rewards = []
@@ -51,9 +52,15 @@ class SimpleAgent(Agent):
         done = False
         s = self._env.reset()
 
+        if self._preprocess_state:
+            s = self._preprocess_state(s) 
+
         while not done:
             a = self._act(s, i=i)
             s1, r, done, _ = self._env.step(a)
+
+            if self._preprocess_state:
+                s1 = self._preprocess_state(s1) 
 
             reward += r
 

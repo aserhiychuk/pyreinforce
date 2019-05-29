@@ -8,8 +8,8 @@ class MonteCarloAgent(SimpleAgent):
     '''
     TODO Monte Carlo Agent class
     '''
-    def __init__(self, n_episodes, env, brain, acting, gamma, replay_memory_size, replay_batch_size):
-        super().__init__(n_episodes, env)
+    def __init__(self, n_episodes, env, brain, acting, gamma, replay_memory_size, replay_batch_size, preprocess_state=None):
+        super().__init__(n_episodes, env, preprocess_state)
         self._brain = brain
         self._acting = acting
         self._gamma = gamma

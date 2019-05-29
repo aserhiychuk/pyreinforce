@@ -13,7 +13,7 @@ class A3cAgent(Agent):
     '''
     TODO A3C Agent class
     '''
-    def __init__(self, n_episodes, envs, brain, acting, gamma, replay_batch_size):
+    def __init__(self, n_episodes, envs, brain, acting, gamma, replay_batch_size, preprocess_state=None):
         super().__init__()
 
         self._n_episodes = n_episodes
@@ -26,6 +26,8 @@ class A3cAgent(Agent):
         self._replay_memory = []
         self._replay_batch_size = replay_batch_size
 
+        self._preprocess_state = preprocess_state
+
         self._result = {}
         self._result_lock = Lock()
 
@@ -35,7 +37,8 @@ class A3cAgent(Agent):
         for env in self._envs:
             parent_conn, child_conn = Pipe()
 
-            process = Process(target=self._worker, args=(self._n_episodes, env, self._acting, child_conn))
+            process = Process(target=self._worker, args=(self._n_episodes, env, self._acting, child_conn, 
+                                                         self._preprocess_state))
             process.start()
 
             self._result[process.pid] = {
@@ -59,8 +62,8 @@ class A3cAgent(Agent):
 
         return self._result
 
-    def _worker(self, n_episodes, env, acting, child_conn):
-        worker = A3cWorker(n_episodes, env, acting, child_conn)
+    def _worker(self, n_episodes, env, acting, child_conn, preprocess_state=None):
+        worker = A3cWorker(n_episodes, env, acting, child_conn, preprocess_state)
         worker.run()
 
     def _subprocess_conn(self, conn):
@@ -136,8 +139,8 @@ class A3cWorker(SimpleAgent):
     '''
     TODO A3C Worker class
     '''
-    def __init__(self, n_episodes, env, acting, conn):
-        super().__init__(n_episodes, env)
+    def __init__(self, n_episodes, env, acting, conn, preprocess_state=None):
+        super().__init__(n_episodes, env, preprocess_state)
         self._acting = acting
         self._pid = os.getpid()
         self._conn = conn
