@@ -17,7 +17,7 @@ class TdAgent(SimpleAgent):
         self._replay_batch_size = replay_batch_size
 
     def _act(self, s, **kwargs):
-        q = self._predict_q(s.reshape(1, -1))
+        q = self._predict_q(s)
         a = self._acting.act(q, i=kwargs['i'], n_episodes=self._n_episodes)
 
         return a
@@ -40,8 +40,8 @@ class TdAgent(SimpleAgent):
 
     def _train(self, batch):
         batch = np.array(batch)
-        states = np.vstack(batch[:, 0])
-        states1 = np.vstack(batch[:, 3])
+        states = np.stack(batch[:, 0])
+        states1 = np.stack(batch[:, 3])
         qs = self._predict_q(states)
         qs1 = self._predict_q(states1)
         targets = self._get_targets(batch, qs, qs1)

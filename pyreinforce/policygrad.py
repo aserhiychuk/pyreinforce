@@ -15,7 +15,7 @@ class PolicyGradientAgent(SimpleAgent):
         self._episode_memory = []
 
     def _act(self, s, **kwargs):
-        probs = self._predict_policy(s.reshape(1, -1))
+        probs = self._predict_policy(s)
         a = self._acting.act(probs)
 
         return a
@@ -32,7 +32,7 @@ class PolicyGradientAgent(SimpleAgent):
         self._episode_memory.append(experience)
 
     def _train(self, batch):
-        states = np.vstack(batch[:, 0])
+        states = np.stack(batch[:, 0])
         actions = batch[:, 1].reshape(-1, 1)
         returns = batch[:, 2].reshape(-1, 1)
 

@@ -105,10 +105,10 @@ class A3cAgent(Agent):
 
     def _train(self, batch):
         batch = np.array(batch)
-        s = np.vstack(batch[:, 0])
+        s = np.stack(batch[:, 0])
         a = np.vstack(batch[:, 1])
         r = np.vstack(batch[:, 2])
-        s1 = np.vstack(batch[:, 3])
+        s1 = np.stack(batch[:, 3])
         s1_mask = np.vstack(batch[:, 4])
 
         v = self._predict_value(s1)

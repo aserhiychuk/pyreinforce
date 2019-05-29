@@ -18,7 +18,7 @@ class MonteCarloAgent(SimpleAgent):
         self._replay_batch_size = replay_batch_size
 
     def _act(self, s, **kwargs):
-        q = self._predict_q(s.reshape(1, -1))
+        q = self._predict_q(s)
         a = self._acting.act(q, i=kwargs['i'], n_episodes=self._n_episodes)
 
         return a
@@ -41,7 +41,7 @@ class MonteCarloAgent(SimpleAgent):
 
     def _train(self, batch):
         batch = np.array(batch)
-        states = np.vstack(batch[:, 0])
+        states = np.stack(batch[:, 0])
         qs = self._predict_q(states)
         returns = self._get_targets(batch, qs)
 
