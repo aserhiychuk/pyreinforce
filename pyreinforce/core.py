@@ -11,6 +11,9 @@ class Agent(object):
         super().__init__()
 #         self._logger = logging.getLogger('{}.{}'.format(__name__, type(self).__name__))
 
+    def seed(self, seed=None):
+        pass
+
     def run(self):
         pass
 

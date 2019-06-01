@@ -17,6 +17,12 @@ class MonteCarloAgent(SimpleAgent):
         self._replay_memory = Memory(replay_memory_size)
         self._replay_batch_size = replay_batch_size
 
+    def seed(self, seed=None):
+        super().seed(seed)
+
+        self._acting.seed(seed)
+        self._replay_memory.seed(seed)
+
     def _act(self, s, **kwargs):
         q = self._predict_q(s)
         a = self._acting.act(q, i=kwargs['i'], n_episodes=self._n_episodes)

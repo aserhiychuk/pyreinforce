@@ -14,6 +14,11 @@ class PolicyGradientAgent(SimpleAgent):
         self._gamma = gamma
         self._episode_memory = []
 
+    def seed(self, seed=None):
+        super().seed(seed)
+
+        self._acting.seed(seed)
+
     def _act(self, s, **kwargs):
         probs = self._predict_policy(s)
         a = self._acting.act(probs)

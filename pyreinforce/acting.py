@@ -8,6 +8,12 @@ class ActingPolicy(object):
     def __init__(self):
         super().__init__()
 
+        self.seed()
+
+    def seed(self, seed=None):
+        self._np_random = np.random.RandomState()
+        self._np_random.seed(seed)
+
     def act(self, **kwargs):
         raise NotImplementedError()
 
@@ -21,9 +27,9 @@ class EpsGreedyPolicy(ActingPolicy):
         self._eps = eps
 
     def act(self, q, **kwargs):
-        if np.random.uniform() < self._eps:
+        if self._np_random.uniform() < self._eps:
             n_actions = q.shape[1]
-            a = np.random.choice(n_actions)
+            a = self._np_random.choice(n_actions)
         else:
             a = np.argmax(q)
 
@@ -58,6 +64,6 @@ class SoftmaxPolicy(ActingPolicy):
 
     def act(self, probs, **kwargs):
         n_actions = probs.shape[1]
-        a = np.random.choice(n_actions, p=probs[0])
+        a = self._np_random.choice(n_actions, p=probs[0])
 
         return a
