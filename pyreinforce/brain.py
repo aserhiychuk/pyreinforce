@@ -8,7 +8,6 @@ class Brain(object):
     def __init__(self):
         super().__init__()
 
-        tf.reset_default_graph()
         self._sess = None
 
     def train(self, batch):
@@ -18,7 +17,6 @@ class Brain(object):
         self._sess = tf.Session()
         self._sess.__enter__()
 
-        # initialize new model
         init = tf.global_variables_initializer()
         self._sess.run(init)
 
