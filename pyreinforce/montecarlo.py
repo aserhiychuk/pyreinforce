@@ -72,7 +72,11 @@ class MonteCarloAgent(SimpleAgent):
         self._episode_memory = []
 
     def _discount_rewards(self, rewards):
-        gammas = self._gamma ** np.arange(0, len(rewards))
-        g = np.cumsum(gammas * rewards)
+        result = np.empty_like(rewards, dtype=np.float32)
+        g = 0
 
-        return np.flip(g)
+        for i in reversed(range(len(rewards))):
+            g = rewards[i] + self._gamma * g
+            result[i] = g
+
+        return result
