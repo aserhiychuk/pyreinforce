@@ -7,8 +7,8 @@ class PolicyGradientAgent(SimpleAgent):
     '''
     TODO Policy Gradient Agent class
     '''
-    def __init__(self, n_episodes, env, brain, acting, gamma, preprocess_state=None):
-        super().__init__(n_episodes, env, preprocess_state)
+    def __init__(self, n_episodes, env, brain, acting, gamma, converter=None):
+        super().__init__(n_episodes, env, converter)
         self._brain = brain
         self._acting = acting
         self._gamma = gamma
