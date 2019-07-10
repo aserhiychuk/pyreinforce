@@ -5,16 +5,18 @@ class Brain(object):
     '''
     TODO Brain class
     '''
-    def __init__(self):
+    def __init__(self, sess=None):
         super().__init__()
 
-        self._sess = None
+        self._sess = sess
 
     def train(self, batch):
         raise NotImplementedError('Subclasses must implement {}#train() method'.format(type(self).__name__))
 
     def __enter__(self):
-        self._sess = tf.Session()
+        if not self._sess:
+            self._sess = tf.Session()
+
         self._sess.__enter__()
 
         init = tf.global_variables_initializer()

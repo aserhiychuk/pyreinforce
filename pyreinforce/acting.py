@@ -67,3 +67,37 @@ class SoftmaxPolicy(ActingPolicy):
         a = self._np_random.choice(n_actions, p=probs[0])
 
         return a
+
+
+class OrnsteinUhlenbeckPolicy(ActingPolicy):
+    '''
+    TODO Ornstein-Uhlenbeck Policy class
+    '''
+    def __init__(self, shape, mu, theta, sigma):
+        super().__init__()
+
+        self._shape = shape
+        self._mu = mu * np.ones(shape)
+        self._theta = theta
+        self._sigma = sigma
+        self._state = None
+        self._cur_episode = None
+
+    def _reset(self):
+        self._state = np.copy(self._mu)
+
+    def _noise(self, **kwargs):
+        x = self._state
+        dx = self._theta * (self._mu - x) + self._sigma * self._np_random.standard_normal(self._shape)
+        self._state = x + dx
+
+        return self._state
+
+    def act(self, a, **kwargs):
+        cur_episode = kwargs['i']
+
+        if self._cur_episode != cur_episode:
+            self._cur_episode = cur_episode
+            self._reset()
+
+        return a[0] + self._noise()
