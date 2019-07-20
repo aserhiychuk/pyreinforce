@@ -1,0 +1,4 @@
+gym~=0.12
+tensorflow~=1.4
+matplotlib~=3.0
+scikit-image~=0.15
