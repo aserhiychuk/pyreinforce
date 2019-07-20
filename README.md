@@ -1,4 +1,4 @@
-# PyReinforce: Deep Reinforcement Learning library for Python
+# PyReinforce
 **PyReinforce** is a collection of algorithms that can be used to solve a variety of different reinforcement learning problems.
 
 ## Basics
