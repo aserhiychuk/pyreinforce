@@ -1,6 +1,10 @@
 # PyReinforce
 **PyReinforce** is a collection of algorithms that can be used to solve a variety of different reinforcement learning problems.
 
+[![LunarLander-v2](/assets/LunarLander-v2.gif?raw=true)](/examples/TemporalDifference.ipynb)
+[![CartPole-v0](/assets/CartPole-v0.gif?raw=true)](/examples/MonteCarlo.ipynb)
+[![Pendulum-v0](/assets/Pendulum-v0.gif?raw=true)](/examples/DDPG.ipynb)
+
 ## Basics
 This is how [OpenAI Gym](https://gym.openai.com/) describes the reinforcement learning process:
 >There are two basic concepts in reinforcement learning: the environment (namely, the outside world) and the agent (namely, >the algorithm you are writing). The agent sends actions to the environment, and the environment replies with observations and >rewards (that is, a score).
