@@ -22,22 +22,22 @@ class DdpgAgent(SimpleAgent):
         self._acting.seed(seed)
         self._replay_memory.seed(seed)
 
-    def _act(self, s, **kwargs):
-        a = self._predict_a(s, False)
-        a = self._acting.act(a, i=kwargs['i'])
+    def _act(self, s, cur_step=0, cur_episode=0):
+        a = self._predict_a(s, False, cur_step=cur_step)
+        a = self._acting.act(a, cur_step=cur_step)
 
         return a
 
-    def _predict_a(self, states, is_target=False):
-        a = self._brain.predict_a(states, is_target)
+    def _predict_a(self, states, is_target=False, **kwargs):
+        a = self._brain.predict_a(states, is_target, **kwargs)
 
         assert not np.isnan(a).any(), 'A contains nan: {}'.format(a)
         assert not np.isinf(a).any(), 'A contains inf: {}'.format(a)
 
         return a
 
-    def _predict_q(self, states, actions, is_target=False):
-        q = self._brain.predict_q(states, actions, is_target)
+    def _predict_q(self, states, actions, is_target=False, **kwargs):
+        q = self._brain.predict_q(states, actions, is_target, **kwargs)
 
         assert not np.isnan(q).any(), 'Q contains nan: {}'.format(q)
         assert not np.isinf(q).any(), 'Q contains inf: {}'.format(q)

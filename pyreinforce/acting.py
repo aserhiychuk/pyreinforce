@@ -47,10 +47,13 @@ class DecayingEpsGreedyPolicy(EpsGreedyPolicy):
         self._eps_decay = eps_decay
 
     def act(self, q, **kwargs):
-        i = kwargs['i']
-        n_episodes = kwargs['n_episodes']
-        self._eps = self._end_eps + (self._start_eps - self._end_eps) * (1 - i / n_episodes) ** self._eps_decay
-        # self._eps = self._end_eps + (self._start_eps - self._end_eps) * np.exp(-self._eps_decay * i)
+        cur_step = kwargs['cur_step']
+
+        if cur_step == 0:
+            cur_episode = kwargs['cur_episode']
+            n_episodes = kwargs['n_episodes']
+            self._eps = self._end_eps + (self._start_eps - self._end_eps) * (1 - cur_episode / n_episodes) ** self._eps_decay
+#             self._eps = self._end_eps + (self._start_eps - self._end_eps) * np.exp(-self._eps_decay * cur_episode)
 
         return super().act(q, **kwargs)
 
@@ -81,7 +84,6 @@ class OrnsteinUhlenbeckPolicy(ActingPolicy):
         self._theta = theta
         self._sigma = sigma
         self._state = None
-        self._cur_episode = None
 
     def _reset(self):
         self._state = np.copy(self._mu)
@@ -94,10 +96,9 @@ class OrnsteinUhlenbeckPolicy(ActingPolicy):
         return self._state
 
     def act(self, a, **kwargs):
-        cur_episode = kwargs['i']
+        cur_step = kwargs['cur_step']
 
-        if self._cur_episode != cur_episode:
-            self._cur_episode = cur_episode
+        if cur_step == 0:
             self._reset()
 
         return a[0] + self._noise()

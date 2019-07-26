@@ -51,6 +51,7 @@ class SimpleAgent(Agent):
         return rewards, stats
 
     def _run_episode(self, i):
+        cur_step = 0
         reward = 0
         done = False
         s = self._env.reset()
@@ -59,7 +60,7 @@ class SimpleAgent(Agent):
             s = self._converter.convert_state(s)
 
         while not done:
-            a = self._act(s, i=i)
+            a = self._act(s, cur_step, i)
 
             if self._converter:
                 a = self._converter.convert_action(a)
@@ -76,13 +77,14 @@ class SimpleAgent(Agent):
             self._observe(experience)
 
             s = s1
+            cur_step += 1
 
         return reward
 
     def _before_episode(self, i=0):
         pass
 
-    def _act(self, s, **kwargs):
+    def _act(self, s, cur_step=0, cur_episode=0):
         pass
 
     def _observe(self, experience):

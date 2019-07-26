@@ -19,14 +19,14 @@ class PolicyGradientAgent(SimpleAgent):
 
         self._acting.seed(seed)
 
-    def _act(self, s, **kwargs):
-        probs = self._predict_policy(s)
+    def _act(self, s, cur_step=0, cur_episode=0):
+        probs = self._predict_policy(s, cur_step=cur_step)
         a = self._acting.act(probs)
 
         return a
 
-    def _predict_policy(self, states):
-        probs = self._brain.predict_policy(states)
+    def _predict_policy(self, states, **kwargs):
+        probs = self._brain.predict_policy(states, **kwargs)
 
         assert not np.isnan(probs).any(), 'policy contains nan: {}'.format(probs)
         assert not np.isinf(probs).any(), 'policy contains inf: {}'.format(probs)

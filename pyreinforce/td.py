@@ -22,14 +22,14 @@ class TdAgent(SimpleAgent):
         self._acting.seed(seed)
         self._replay_memory.seed(seed)
 
-    def _act(self, s, **kwargs):
-        q = self._predict_q(s)
-        a = self._acting.act(q, i=kwargs['i'], n_episodes=self._n_episodes)
+    def _act(self, s, cur_step=0, cur_episode=0):
+        q = self._predict_q(s, cur_step=cur_step)
+        a = self._acting.act(q, cur_step=cur_step, cur_episode=cur_episode, n_episodes=self._n_episodes)
 
         return a
 
-    def _predict_q(self, states):
-        q = self._brain.predict_q(states)
+    def _predict_q(self, states, **kwargs):
+        q = self._brain.predict_q(states, **kwargs)
 
         assert not np.isnan(q).any(), 'Q contains nan: {}'.format(q)
         assert not np.isinf(q).any(), 'Q contains inf: {}'.format(q)
