@@ -8,6 +8,7 @@ class Memory(object):
     def __init__(self, capacity):
         self._capacity = capacity
         self._samples = []
+        self._buffer = []
 
         self.seed()
 
@@ -17,9 +18,9 @@ class Memory(object):
 
         return self._random
 
-    def add(self, sample):
-        if isinstance(sample, list):
-            self._add_all(sample)
+    def add(self, sample, **kwargs):
+        if kwargs.get('buffer', False):
+            self._buffer.append(sample)
         else:
             self._add(sample)
 
@@ -35,7 +36,17 @@ class Memory(object):
         if len(self._samples) > self._capacity:
             self._samples = self._samples[len(self._samples) - self._capacity:]
 
-    def sample(self, n):
-        n = min(n, len(self._samples))
+    def sample(self, batch_size, **kwargs):
+        batch_size = min(batch_size, len(self._samples))
 
-        return self._random.sample(self._samples, n)
+        return self._random.sample(self._samples, batch_size)
+
+    def _flush(self):
+        self._add_all(self._buffer)
+
+    def flush(self, preprocess_buffer=None):
+        if callable(preprocess_buffer):
+            self._buffer = preprocess_buffer(self._buffer)
+
+        self._flush()
+        self._buffer = []

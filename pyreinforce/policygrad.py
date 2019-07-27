@@ -1,6 +1,7 @@
 import numpy as np
 
 from pyreinforce.core import SimpleAgent
+from pyreinforce.utils import discount_rewards
 
 
 class PolicyGradientAgent(SimpleAgent):
@@ -45,18 +46,8 @@ class PolicyGradientAgent(SimpleAgent):
 
     def _after_episode(self):
         episode = np.array(self._episode_memory)
-        episode[:, 2] = self._discount_rewards(episode[:, 2])
+        episode[:, 2] = discount_rewards(episode[:, 2], self._gamma)
 
         self._train(episode)
 
         self._episode_memory = []
-
-    def _discount_rewards(self, rewards):
-        result = np.empty_like(rewards, dtype=np.float32)
-        g = 0
-
-        for i in reversed(range(len(rewards))):
-            g = rewards[i] + self._gamma * g
-            result[i] = g
-
-        return result
