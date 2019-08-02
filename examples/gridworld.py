@@ -149,7 +149,7 @@ class GridWorldEnv(gym.Env):
 
         return 0
 
-    def _to_image(self, width, height=None):
+    def _to_image(self, width, height=None, mode=None):
         a = np.ones([self._size_y + 2, self._size_x + 2, 3])
         a[1:-1, 1:-1, :] = 0
         hero = None
@@ -161,11 +161,22 @@ class GridWorldEnv(gym.Env):
                 hero = item
 
         if self._partial:
-            a = a[hero.y:hero.y + 3, hero.x:hero.x + 3, :]
+            visible_area = a[hero.y:hero.y + 3, hero.x:hero.x + 3, :]
+
+            if mode == 'human':
+                black = np.all(a == [0, 0, 0], axis=-1)
+                visible_black = np.all(visible_area == [0, 0, 0], axis=-1)
+
+                a[black] = 0.5
+                a *= 0.25
+                visible_area *= 4
+                visible_area[visible_black] = 0
+            else:
+                a = visible_area
 
         scale_width = width / a.shape[1]
         scale_height = height / a.shape[0] if height else scale_width
-        
+
         a = rescale(a, (scale_height, scale_width), order=0, multichannel=True)
 
         with warnings.catch_warnings():
@@ -180,7 +191,7 @@ class GridWorldEnv(gym.Env):
                 from gym.envs.classic_control import rendering
                 self._viewer = rendering.SimpleImageViewer()
 
-            s = self._to_image(400)
+            s = self._to_image(400, mode='human')
 
             self._viewer.imshow(s)
 
