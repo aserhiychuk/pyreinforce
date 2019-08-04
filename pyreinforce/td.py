@@ -1,6 +1,5 @@
 import numpy as np
 
-from pyreinforce.memory import Memory
 from pyreinforce.core import SimpleAgent
 
 
@@ -8,13 +7,12 @@ class TdAgent(SimpleAgent):
     '''
     TODO Temporal Difference Agent class
     '''
-    def __init__(self, n_episodes, env, brain, acting, gamma, replay_memory_size, replay_batch_size, converter=None):
+    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None):
         super().__init__(n_episodes, env, converter)
         self._brain = brain
         self._acting = acting
+        self._replay_memory = replay_memory
         self._gamma = gamma
-        self._replay_memory = Memory(replay_memory_size)
-        self._replay_batch_size = replay_batch_size
 
     def seed(self, seed=None):
         super().seed(seed)
@@ -39,13 +37,15 @@ class TdAgent(SimpleAgent):
     def _observe(self, experience):
         self._replay_memory.add(experience)
 
-        batch = self._replay_memory.sample(self._replay_batch_size)
+        batch = self._replay_memory.sample()
 
         if len(batch) > 0:
             self._train(batch)
 
     def _train(self, batch):
         batch = np.array(batch)
+        batch = np.reshape(batch, (-1, batch.shape[-1]))
+
         states = np.stack(batch[:, 0])
         states1 = np.stack(batch[:, 3])
         qs = self._predict_q(states)
@@ -64,3 +64,6 @@ class TdAgent(SimpleAgent):
         target[ind, a] = r + s1_mask * self._gamma * np.max(q1, axis=1)
 
         return target
+
+    def _after_episode(self):
+        self._replay_memory.flush()

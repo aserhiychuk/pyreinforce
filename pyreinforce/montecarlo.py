@@ -1,21 +1,18 @@
 import numpy as np
 
-from pyreinforce.memory import Memory
 from pyreinforce.core import SimpleAgent
-from pyreinforce.utils import discount_rewards
 
 
 class MonteCarloAgent(SimpleAgent):
     '''
     TODO Monte Carlo Agent class
     '''
-    def __init__(self, n_episodes, env, brain, acting, gamma, replay_memory_size, replay_batch_size, converter=None):
+    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None):
         super().__init__(n_episodes, env, converter)
         self._brain = brain
         self._acting = acting
+        self._replay_memory = replay_memory
         self._gamma = gamma
-        self._replay_memory = Memory(replay_memory_size)
-        self._replay_batch_size = replay_batch_size
 
     def seed(self, seed=None):
         super().seed(seed)
@@ -40,13 +37,15 @@ class MonteCarloAgent(SimpleAgent):
     def _observe(self, experience):
         self._replay_memory.add(experience, buffer=True)
 
-        batch = self._replay_memory.sample(self._replay_batch_size)
+        batch = self._replay_memory.sample()
 
         if len(batch) > 0:
             self._train(batch)
 
     def _train(self, batch):
         batch = np.array(batch)
+        batch = np.reshape(batch, (-1, batch.shape[-1]))
+
         states = np.stack(batch[:, 0])
         qs = self._predict_q(states)
         returns = self._get_targets(batch, qs)
@@ -64,10 +63,4 @@ class MonteCarloAgent(SimpleAgent):
         return target
 
     def _after_episode(self):
-        self._replay_memory.flush(self._preprocess_episode)
-
-    def _preprocess_episode(self, episode):
-        episode = np.array(episode)
-        episode[:, 2] = discount_rewards(episode[:, 2], self._gamma)
-
-        return episode.tolist()
+        self._replay_memory.flush(self._gamma)

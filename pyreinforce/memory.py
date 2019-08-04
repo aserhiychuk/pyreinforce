@@ -1,13 +1,16 @@
 import random
+import numpy as np
 
+from pyreinforce.utils import discount_rewards
 
 class Memory(object):
     '''
     TODO Memory class
     '''
-    def __init__(self, capacity):
+    def __init__(self, capacity, batch_size):
         self._capacity = capacity
         self._samples = []
+        self._batch_size = batch_size
         self._buffer = []
 
         self.seed()
@@ -36,17 +39,50 @@ class Memory(object):
         if len(self._samples) > self._capacity:
             self._samples = self._samples[len(self._samples) - self._capacity:]
 
-    def sample(self, batch_size, **kwargs):
-        batch_size = min(batch_size, len(self._samples))
+    def sample(self, **kwargs):
+        batch_size = min(self._batch_size, len(self._samples))
 
         return self._random.sample(self._samples, batch_size)
 
     def _flush(self):
         self._add_all(self._buffer)
 
-    def flush(self, preprocess_buffer=None):
-        if callable(preprocess_buffer):
-            self._buffer = preprocess_buffer(self._buffer)
+    def flush(self, gamma=None):
+        if gamma is not None:
+            buffer = np.array(self._buffer)
+            buffer[:, 2] = discount_rewards(buffer[:, 2], gamma)
+
+            self._buffer = buffer.tolist()
 
         self._flush()
         self._buffer = []
+
+
+class EpisodicMemory(Memory):
+    '''
+    TODO EpisodicMemory class
+    '''
+    def __init__(self, capacity, batch_size, n_time_steps):
+        super().__init__(capacity, batch_size)
+
+        self._n_time_steps = n_time_steps
+
+    def add(self, sample, **kwargs):
+        self._buffer.append(sample)
+
+    def sample(self, **kwargs):
+        batch = super().sample()
+        batch = [self._sample_time_steps(episode) for episode in batch]
+
+        return batch
+
+    def _sample_time_steps(self, episode):
+        start = self._random.randint(0, len(episode) - self._n_time_steps)
+
+        return episode[start : start + self._n_time_steps]
+
+    def _flush(self):
+        if len(self._buffer) < self._n_time_steps:
+            return
+
+        self._add(self._buffer)
