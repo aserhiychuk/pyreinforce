@@ -22,7 +22,7 @@ pip install PyReinforce
 ```
 or from source:
 ```bash
-git clone git@github.com:aserhiychuk/pyreinforce.git
+git clone https://github.com/aserhiychuk/pyreinforce.git
 cd pyreinforce
 pip install -e .
 ```
