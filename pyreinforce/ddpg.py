@@ -7,8 +7,9 @@ class DdpgAgent(SimpleAgent):
     '''
     TODO DDPG Agent class
     '''
-    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None, train_freq=1):
-        super().__init__(n_episodes, env, converter)
+    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma,
+                 converter=None, train_freq=1, callback=None):
+        super().__init__(n_episodes, env, converter, callback)
         self._brain = brain
         self._acting = acting
         self._replay_memory = replay_memory

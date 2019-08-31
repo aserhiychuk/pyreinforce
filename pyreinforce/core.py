@@ -22,11 +22,12 @@ class SimpleAgent(Agent):
     '''
     TODO Simple Agent class
     '''
-    def __init__(self, n_episodes, env, converter=None):
+    def __init__(self, n_episodes, env, converter=None, callback=None):
         super().__init__()
         self._n_episodes = n_episodes
         self._env = env
         self._converter = converter
+        self._callback = callback
 
         self._global_step = 0
 
@@ -45,6 +46,9 @@ class SimpleAgent(Agent):
             stats.append(episode_stop - episode_start)
 
             rewards.append(reward)
+
+            if callable(self._callback):
+                self._callback(i, self._n_episodes, rewards)
 
         rewards = np.array(rewards, np.float32)
         stats = np.array(stats)
