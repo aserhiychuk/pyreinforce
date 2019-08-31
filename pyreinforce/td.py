@@ -7,12 +7,13 @@ class TdAgent(SimpleAgent):
     '''
     TODO Temporal Difference Agent class
     '''
-    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None):
+    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None, train_freq=1):
         super().__init__(n_episodes, env, converter)
         self._brain = brain
         self._acting = acting
         self._replay_memory = replay_memory
         self._gamma = gamma
+        self._train_freq = train_freq
 
     def seed(self, seed=None):
         super().seed(seed)
@@ -39,7 +40,7 @@ class TdAgent(SimpleAgent):
 
         batch = self._replay_memory.sample()
 
-        if len(batch) > 0:
+        if len(batch) > 0 and self._global_step % self._train_freq == 0:
             self._train(batch)
 
     def _train(self, batch):
@@ -52,7 +53,8 @@ class TdAgent(SimpleAgent):
         qs1 = self._predict_q(states1)
         targets = self._get_targets(batch, qs, qs1)
 
-        self._brain.train(states, targets)
+        self._brain.train(states, targets, global_step=self._global_step,
+                          train_freq=self._train_freq)
 
     def _get_targets(self, batch, q, q1):
         target = np.empty_like(q)

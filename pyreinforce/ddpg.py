@@ -7,12 +7,13 @@ class DdpgAgent(SimpleAgent):
     '''
     TODO DDPG Agent class
     '''
-    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None):
+    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None, train_freq=1):
         super().__init__(n_episodes, env, converter)
         self._brain = brain
         self._acting = acting
         self._replay_memory = replay_memory
         self._gamma = gamma
+        self._train_freq = train_freq
 
     def seed(self, seed=None):
         super().seed(seed)
@@ -47,7 +48,7 @@ class DdpgAgent(SimpleAgent):
 
         batch = self._replay_memory.sample()
 
-        if len(batch) > 0:
+        if len(batch) > 0 and self._global_step % self._train_freq == 0:
             self._train(batch)
 
     def _train(self, batch):
@@ -66,7 +67,8 @@ class DdpgAgent(SimpleAgent):
         # target
         t = r + s1_mask * self._gamma * q1
 
-        self._brain.train(s, a, t)
+        self._brain.train(s, a, t, global_step=self._global_step,
+                          train_freq=self._train_freq)
 
     def _after_episode(self):
         self._replay_memory.flush()

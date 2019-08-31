@@ -7,12 +7,13 @@ class MonteCarloAgent(SimpleAgent):
     '''
     TODO Monte Carlo Agent class
     '''
-    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None):
+    def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma, converter=None, train_freq=1):
         super().__init__(n_episodes, env, converter)
         self._brain = brain
         self._acting = acting
         self._replay_memory = replay_memory
         self._gamma = gamma
+        self._train_freq = train_freq
 
     def seed(self, seed=None):
         super().seed(seed)
@@ -39,7 +40,7 @@ class MonteCarloAgent(SimpleAgent):
 
         batch = self._replay_memory.sample()
 
-        if len(batch) > 0:
+        if len(batch) > 0 and self._global_step % self._train_freq == 0:
             self._train(batch)
 
     def _train(self, batch):
@@ -50,7 +51,8 @@ class MonteCarloAgent(SimpleAgent):
         qs = self._predict_q(states)
         returns = self._get_targets(batch, qs)
 
-        self._brain.train(states, returns)
+        self._brain.train(states, returns, global_step=self._global_step,
+                          train_freq=self._train_freq)
 
     def _get_targets(self, batch, q):
         target = np.empty_like(q)

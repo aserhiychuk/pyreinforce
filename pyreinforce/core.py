@@ -28,6 +28,8 @@ class SimpleAgent(Agent):
         self._env = env
         self._converter = converter
 
+        self._global_step = 0
+
     def run(self):
         rewards = []
         stats = []
@@ -77,7 +79,9 @@ class SimpleAgent(Agent):
             self._observe(experience)
 
             s = s1
+
             cur_step += 1
+            self._global_step += 1
 
         return reward
 
