@@ -60,7 +60,7 @@ class SimpleAgent(Agent):
         cur_step = 0
         reward = 0
         done = False
-        s = self._env.reset()
+        s = self._reset()
 
         if self._converter:
             s = self._converter.convert_state(s)
@@ -71,7 +71,7 @@ class SimpleAgent(Agent):
             if self._converter:
                 a = self._converter.convert_action(a)
 
-            s1, r, done, _ = self._env.step(a)
+            s1, r, done, _ = self._step(a)
 
             if self._converter:
                 s1 = self._converter.convert_state(s1)
@@ -88,6 +88,16 @@ class SimpleAgent(Agent):
             self._global_step += 1
 
         return reward
+
+    def _reset(self):
+        s = self._env.reset()
+
+        return s
+
+    def _step(self, a):
+        s1, r, done, info = self._env.step(a)
+
+        return s1, r, done, info
 
     def _before_episode(self, i=0):
         pass
