@@ -39,10 +39,11 @@ class MonteCarloAgent(SimpleAgent):
     def _observe(self, experience):
         self._replay_memory.add(experience, buffer=True)
 
-        batch = self._replay_memory.sample()
+        if self._global_step % self._train_freq == 0:
+            batch = self._replay_memory.sample()
 
-        if len(batch) > 0 and self._global_step % self._train_freq == 0:
-            self._train(batch)
+            if len(batch) > 0:
+                self._train(batch)
 
     def _train(self, batch):
         batch = np.array(batch)
