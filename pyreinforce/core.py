@@ -68,22 +68,34 @@ class SimpleAgent(Agent):
         while not done:
             a = self._act(s, cur_step, i)
 
+            experience = {
+                's': s,
+                'a': a
+            }
+
             if self._converter:
                 a = self._converter.convert_action(a)
 
-            s1, r, done, _ = self._step(a)
+            s1, r, done, info = self._step(a)
 
             if self._converter:
-                s1 = self._converter.convert_state(s1)
-                r = self._converter.convert_reward(r)
+                s1 = self._converter.convert_state(s1, info)
 
-            reward += r
+            experience.update({
+                'r': r,
+                's1': s1,
+                'done': done
+            })
 
-            experience = (s, a, r, s1, 0 if done else 1)
+            if self._converter:
+                experience = self._converter.convert_experience(experience, info)
+
+            experience = self._create_experience(**experience)
             self._observe(experience)
 
             s = s1
 
+            reward += r
             cur_step += 1
             self._global_step += 1
 
@@ -104,6 +116,15 @@ class SimpleAgent(Agent):
 
     def _act(self, s, cur_step=0, cur_episode=0):
         pass
+
+    def _create_experience(self, **kwargs):
+        s = kwargs['s']
+        a = kwargs['a']
+        r = kwargs['r']
+        s1 = kwargs['s1']
+        s1_mask = 0 if kwargs['done'] else 1
+
+        return (s, a, r, s1, s1_mask)
 
     def _observe(self, experience):
         pass
