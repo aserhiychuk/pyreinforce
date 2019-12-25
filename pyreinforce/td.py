@@ -30,12 +30,13 @@ class TdAgent(SimpleAgent):
         callback : callable, optional
             If specified, is called after each episode
             with the following parameters:
-                cur_episode : int
-                    Current episode number.
-                n_episodes : int
-                    Total number of episodes.
-                rewards : list
-                    List of cumulative rewards obtained during prior episodes.
+
+            cur_episode : int
+                Current episode number.
+            n_episodes : int
+                Total number of episodes.
+            rewards : list
+                List of cumulative rewards obtained during prior episodes.
         """
         super().__init__(n_episodes, env, converter, callback)
         self._brain = brain

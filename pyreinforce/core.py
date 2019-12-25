@@ -50,12 +50,13 @@ class SimpleAgent(Agent):
         callback : callable, optional
             If specified, is called after each episode
             with the following parameters:
-                cur_episode : int
-                    Current episode number.
-                n_episodes : int
-                    Total number of episodes.
-                rewards : list
-                    List of cumulative rewards obtained during prior episodes.
+
+            cur_episode : int
+                Current episode number.
+            n_episodes : int
+                Total number of episodes.
+            rewards : list
+                List of cumulative rewards obtained during prior episodes.
         """
         super().__init__()
         self._n_episodes = n_episodes
