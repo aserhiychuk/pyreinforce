@@ -12,6 +12,8 @@ class Converter(object):
         ----------
         s : obj
             State as it is received from the environment.
+        info : dict or obj, optional
+            Diagnostic information.
 
         Returns
         -------
@@ -38,4 +40,20 @@ class Converter(object):
         return a
 
     def convert_experience(self, experience, info=None):
+        """Convert experience to be stored in the replay memory.
+
+        Base implementation returns original experience.
+
+        Parameters
+        ----------
+        experience : sequence or obj
+            Experience, typically a tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+        info : dict or obj, optional
+            Diagnostic information.
+
+        Returns
+        -------
+        sequence or obj
+            Experience that can be stored in the replay memory.
+        """
         return experience
