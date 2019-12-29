@@ -222,6 +222,19 @@ class SimpleAgent(Agent):
         raise NotImplementedError
 
     def _create_experience(self, **kwargs):
+        """Create an experience after taking a step in the environment.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Contains `state`, `action`, `reward`, `next state`,
+            and `terminal flag`.
+
+        Returns
+        -------
+        tuple
+            Tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+        """
         s = kwargs['s']
         a = kwargs['a']
         r = kwargs['r']
