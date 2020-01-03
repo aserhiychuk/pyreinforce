@@ -76,7 +76,8 @@ class TdAgent(SimpleAgent):
             Action according to action selection policy.
         """
         q = self._predict_q(s, cur_step=cur_step)
-        a = self._acting.act(q, cur_step=cur_step, cur_episode=cur_episode, n_episodes=self._n_episodes)
+        a = self._acting.act(q, cur_step=cur_step, cur_episode=cur_episode,
+                             n_episodes=self._n_episodes, global_step=self._global_step)
 
         return a
 
