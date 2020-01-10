@@ -3,6 +3,7 @@ import numpy as np
 
 from pyreinforce.utils import discount_rewards
 
+
 class Memory(object):
     """Experience replay memory that stores recent experiences.
 
@@ -66,10 +67,10 @@ class Memory(object):
         sample : sequence or obj
             Experience, typically a tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
         """
-        self._samples.append(sample)
-
-        if len(self._samples) > self._capacity:
+        if len(self._samples) + 1 > self._capacity:
             self._samples.pop(0)
+
+        self._samples.append(sample)
 
     def _add_all(self, samples):
         """Add a list of experiences to the memory.
@@ -79,10 +80,10 @@ class Memory(object):
         samples : list
             List of experiences.
         """
-        self._samples += samples
+        if len(self._samples) + len(samples) > self._capacity:
+            self._samples = self._samples[len(self._samples) + len(samples) - self._capacity:]
 
-        if len(self._samples) > self._capacity:
-            self._samples = self._samples[len(self._samples) - self._capacity:]
+        self._samples += samples
 
     def sample(self, **kwargs):
         """Sample a batch of experiences.
@@ -127,7 +128,7 @@ class EpisodicMemory(Memory):
         Parameters
         ----------
         capacity : int
-            Maximum number of episodes to store.
+            Maximum number of experiences to store.
         batch_size : int
             Number of sampled sequences of experiences.
         n_time_steps : int
@@ -135,6 +136,7 @@ class EpisodicMemory(Memory):
         """
         super().__init__(capacity, batch_size)
 
+        self._size = 0
         self._n_time_steps = n_time_steps
 
     def add(self, sample, **kwargs):
@@ -146,6 +148,22 @@ class EpisodicMemory(Memory):
             Experience, typically a tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
         """
         self._buffer.append(sample)
+
+    def _add(self, samples):
+        """Add given experiences to the memory.
+
+        Parameters
+        ----------
+        samples : list
+            List of experiences, typically list of tuples of (`s`, `a`, `r`,
+            `s1`, `s1_mask`).
+        """
+        while self._size + len(samples) > self._capacity:
+            episode = self._samples.pop(0)
+            self._size -= len(episode)
+
+        self._samples.append(samples)
+        self._size += len(samples)
 
     def sample(self, **kwargs):
         """Sample a batch of sequences of experiences.

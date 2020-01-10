@@ -124,12 +124,24 @@ class MemoryTest(unittest.TestCase):
 
 class EpisodicMemoryTest(unittest.TestCase):
     def setUp(self):
-        self._capacity = 100
+        self._capacity = 1000
         self._batch_size = 8
         self._n_time_steps = 4
         self._memory = EpisodicMemory(self._capacity, self._batch_size, self._n_time_steps)
 
-    def test_add(self):
+    def test_add_honors_capacity(self):
+        for episode_no in range(100):
+            for step_no in range(_random.randint(10, 100)):
+                experience = _random_experience(s=(episode_no, step_no))
+                self._memory.add(experience)
+
+            self._memory.flush()
+
+            expected_size = sum([len(episode) for episode in self._memory._samples])
+            self.assertEqual(expected_size, self._memory._size)
+            self.assertGreaterEqual(self._capacity, self._memory._size)
+
+    def test_add_to_buffer(self):
         experience = _random_experience()
         self._memory.add(experience)
 
