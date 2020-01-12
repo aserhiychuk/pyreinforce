@@ -47,7 +47,8 @@ class Converter(object):
         Parameters
         ----------
         experience : sequence or obj
-            Experience, typically a tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Experience, typically a tuple of (`s`, `a`, `r`, `s1`,
+            `terminal_flag`).
         info : dict or obj, optional
             Diagnostic information.
 

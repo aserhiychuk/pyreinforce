@@ -9,14 +9,14 @@ _seed = 123
 _random = random.Random()
 _random.seed(_seed)
 
-def _random_experience(s=None, a=None, r=None, s1=None, s1_mask=None):
+def _random_experience(s=None, a=None, r=None, s1=None, is_terminal=None):
     s = s or _random.random()
     a = a or _random.randint(0, 10)
     r = r or _random.random()
     s1 = s1 or _random.random()
-    s1_mask = s1_mask or _random.randint(0, 1)
+    is_terminal = is_terminal or bool(_random.randint(0, 1))
 
-    return (s, a, r, s1, s1_mask)
+    return (s, a, r, s1, is_terminal)
 
 
 class MemoryTest(unittest.TestCase):

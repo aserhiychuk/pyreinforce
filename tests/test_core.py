@@ -33,7 +33,7 @@ class TestConverter(Converter):
         a = experience['a']
         r = experience['r']
         s1 = experience['s1']
-        done = experience['done']
+        is_terminal = experience['is_terminal']
 
         if a < 0:
             r = -1
@@ -47,7 +47,7 @@ class TestConverter(Converter):
             'a': a,
             'r': r,
             's1': s1,
-            'done': done
+            'is_terminal': is_terminal
         }
 
 

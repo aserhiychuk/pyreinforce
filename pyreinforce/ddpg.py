@@ -146,7 +146,7 @@ class DdpgAgent(SimpleAgent):
         Parameters
         ----------
         experience : tuple
-            Tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Tuple of (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         self._replay_memory.add(experience)
 
@@ -162,7 +162,7 @@ class DdpgAgent(SimpleAgent):
         Parameters
         ----------
         batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `s1_mask`).
+            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         batch = np.array(batch)
         batch = np.reshape(batch, (-1, batch.shape[-1]))
@@ -171,7 +171,7 @@ class DdpgAgent(SimpleAgent):
         a = np.stack(batch[:, 1])
         r = np.vstack(batch[:, 2])
         s1 = np.stack(batch[:, 3])
-        s1_mask = np.vstack(batch[:, 4])
+        s1_mask = 1 - np.vstack(batch[:, 4])
 
         a1 = self._predict_a(s1, True)
         q1 = self._predict_q(s1, a1, True)

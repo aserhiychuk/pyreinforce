@@ -114,7 +114,7 @@ class MonteCarloAgent(SimpleAgent):
         Parameters
         ----------
         experience : tuple
-            Tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Tuple of (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         self._replay_memory.add(experience, buffer=True)
 
@@ -130,7 +130,7 @@ class MonteCarloAgent(SimpleAgent):
         Parameters
         ----------
         batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `s1_mask`).
+            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         batch = np.array(batch)
         batch = np.reshape(batch, (-1, batch.shape[-1]))
@@ -148,7 +148,7 @@ class MonteCarloAgent(SimpleAgent):
         Parameters
         ----------
         batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `s1_mask`).
+            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
         q : array
             `Q`-values for current states `s`.
         """

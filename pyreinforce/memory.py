@@ -46,7 +46,8 @@ class Memory(object):
         Parameters
         ----------
         sample : sequence or obj
-            Experience, typically a tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Experience, typically a tuple of (`s`, `a`, `r`,
+            `s1`, `terminal_flag`).
 
         Keyword arguments
         -----------------
@@ -65,7 +66,8 @@ class Memory(object):
         Parameters
         ----------
         sample : sequence or obj
-            Experience, typically a tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Experience, typically a tuple of (`s`, `a`, `r`,
+            `s1`, `terminal_flag`).
         """
         if len(self._samples) + 1 > self._capacity:
             self._samples.pop(0)
@@ -145,7 +147,8 @@ class EpisodicMemory(Memory):
         Parameters
         ----------
         sample : sequence or obj
-            Experience, typically a tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Experience, typically a tuple of (`s`, `a`, `r`,
+            `s1`, `terminal_flag`).
         """
         self._buffer.append(sample)
 
@@ -156,7 +159,7 @@ class EpisodicMemory(Memory):
         ----------
         samples : list
             List of experiences, typically list of tuples of (`s`, `a`, `r`,
-            `s1`, `s1_mask`).
+            `s1`, `terminal_flag`).
         """
         while self._size + len(samples) > self._capacity:
             episode = self._samples.pop(0)

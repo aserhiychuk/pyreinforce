@@ -135,7 +135,7 @@ class SimpleAgent(Agent):
             experience.update({
                 'r': r,
                 's1': s1,
-                'done': done
+                'is_terminal': done
             })
 
             if self._converter:
@@ -233,15 +233,15 @@ class SimpleAgent(Agent):
         Returns
         -------
         tuple
-            Tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Tuple of (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         s = kwargs['s']
         a = kwargs['a']
         r = kwargs['r']
         s1 = kwargs['s1']
-        s1_mask = 0 if kwargs['done'] else 1
+        is_terminal = kwargs['is_terminal']
 
-        return (s, a, r, s1, s1_mask)
+        return (s, a, r, s1, is_terminal)
 
     def _observe(self, experience):
         """Called after taking a step in the environment.
@@ -261,8 +261,8 @@ class SimpleAgent(Agent):
                 Reward achieve by the action
             s1
                 State after performing action
-            s1_mask : int
-                0 if `s1` is a terminal state, 1 otherwise.
+            terminal_flag : bool
+                True if `s1` is a terminal state, False otherwise.
         """
         pass
 

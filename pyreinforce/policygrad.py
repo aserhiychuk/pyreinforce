@@ -108,7 +108,7 @@ class PolicyGradientAgent(SimpleAgent):
         Parameters
         ----------
         experience : tuple
-            Tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Tuple of (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         self._episode_memory.append(experience)
 
@@ -118,7 +118,7 @@ class PolicyGradientAgent(SimpleAgent):
         Parameters
         ----------
         batch : array
-            Array of experiences (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Array of experiences (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         states = np.stack(batch[:, 0])
         actions = batch[:, 1].reshape(-1, 1)

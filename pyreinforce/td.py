@@ -114,7 +114,7 @@ class TdAgent(SimpleAgent):
         Parameters
         ----------
         experience : tuple
-            Tuple of (`s`, `a`, `r`, `s1`, `s1_mask`).
+            Tuple of (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         self._replay_memory.add(experience)
 
@@ -130,7 +130,7 @@ class TdAgent(SimpleAgent):
         Parameters
         ----------
         batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `s1_mask`).
+            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
         """
         batch = np.array(batch)
         batch = np.reshape(batch, (-1, batch.shape[-1]))
@@ -150,7 +150,7 @@ class TdAgent(SimpleAgent):
         Parameters
         ----------
         batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `s1_mask`).
+            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
         q : array
             `Q`-values for current states `s`.
         q1 : array
@@ -160,7 +160,7 @@ class TdAgent(SimpleAgent):
         target[:] = q
         a = np.int32(batch[:, 1])
         r = batch[:, 2]
-        s1_mask = batch[:, 4]
+        s1_mask = 1 - batch[:, 4]
         ind = np.arange(batch.shape[0])
         target[ind, a] = r + s1_mask * self._gamma * np.max(q1, axis=1)
 
