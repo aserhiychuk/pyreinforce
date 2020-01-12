@@ -20,7 +20,7 @@ class Agent(object):
 
         Note
         ----
-        This implementation does nothing.
+        Base method does nothing.
         """
         pass
 
@@ -29,7 +29,7 @@ class Agent(object):
 
         Note
         ----
-        This implementation does nothing.
+        Base method does nothing.
         """
         pass
 
@@ -72,18 +72,18 @@ class SimpleAgent(Agent):
         Returns
         -------
         list of floats
-            List of cumulative rewards per episode
+            List of cumulative rewards per episode.
         obj
-            Some useful training statistics
+            Some useful training statistics.
         """
         rewards = []
         stats = []
 
-        for i in range(self._n_episodes):
+        for cur_episode in range(self._n_episodes):
             episode_start = time.perf_counter()
 
-            self._before_episode(i)
-            reward = self._run_episode(i)
+            self._before_episode(cur_episode)
+            reward = self._run_episode(cur_episode)
             self._after_episode()
 
             episode_stop = time.perf_counter()
@@ -92,7 +92,7 @@ class SimpleAgent(Agent):
             rewards.append(reward)
 
             if callable(self._callback):
-                self._callback(i, self._n_episodes, rewards)
+                self._callback(cur_episode, self._n_episodes, rewards)
 
         rewards = np.array(rewards, np.float32)
         stats = np.array(stats)
@@ -100,12 +100,12 @@ class SimpleAgent(Agent):
 
         return rewards, stats
 
-    def _run_episode(self, i):
+    def _run_episode(self, cur_episode):
         """Run a single episode.
 
         Parameters
         ----------
-        i : int
+        cur_episode : int
             Current episode number.
         """
         cur_step = 0
@@ -117,7 +117,7 @@ class SimpleAgent(Agent):
             s = self._converter.convert_state(s)
 
         while not done:
-            a = self._act(s, cur_step, i)
+            a = self._act(s, cur_step, cur_episode)
 
             experience = {
                 's': s,
@@ -187,12 +187,12 @@ class SimpleAgent(Agent):
 
         return s1, r, done, info
 
-    def _before_episode(self, i=0):
+    def _before_episode(self, cur_episode=0):
         """Called before an episode starts.
 
         Parameters
         ----------
-        i : int, optional
+        cur_episode : int, optional
             Current episode number.
         """
         pass
@@ -203,11 +203,11 @@ class SimpleAgent(Agent):
         Parameters
         ----------
         s
-            Current state
+            Current state.
         cur_step : int, optional
-            Current step of the episode
+            Current step of the episode.
         cur_episode : int, optional
-            Current episode
+            Current episode.
 
         Returns
         -------
@@ -216,8 +216,8 @@ class SimpleAgent(Agent):
 
         Note
         ----
-        Must be implemented by subclasses. Default implementation
-        raises `NotImplementedError` exception
+        Must be implemented by subclasses. Base method
+        raises `NotImplementedError` exception.
         """
         raise NotImplementedError
 
@@ -254,13 +254,13 @@ class SimpleAgent(Agent):
         experience : tuple
             Tuple that contains information about the current step:
             s
-                State before performing action
+                State before performing action.
             a : int or obj
-                Action that was performed
+                Action that was performed.
             r : float
-                Reward achieve by the action
+                Reward achieve by the action.
             s1
-                State after performing action
+                State after performing action.
             terminal_flag : bool
                 True if `s1` is a terminal state, False otherwise.
         """
