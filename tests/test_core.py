@@ -99,8 +99,17 @@ class SimpleAgentTest(unittest.TestCase):
                                 converter, episode_callback)
 
     def _create_episode_callback(self):
-        def callback(cur_episode, n_episodes, rewards):
-            self.assertLessEqual(cur_episode, n_episodes - 1)
+        def callback(cur_episode, reward, **kwargs):
+            rewards = kwargs['rewards']
+            n_episodes = kwargs['n_episodes']
+            n_episode_steps = kwargs['n_episode_steps']
+            global_step = kwargs['global_step']
+
+            self.assertEqual(reward, rewards[-1])
+            self.assertEqual(self._n_episodes, n_episodes)
+            self.assertLessEqual(n_episode_steps, global_step)
+
+            self.assertLessEqual(cur_episode, self._n_episodes - 1)
             self.assertEqual(cur_episode, len(rewards) - 1)
             self.assertEqual(cur_episode, len(self._env.rewards) - 1)
 

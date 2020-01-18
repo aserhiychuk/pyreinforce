@@ -52,11 +52,11 @@ class SimpleAgent(Agent):
             with the following parameters:
 
             cur_episode : int
-                Current episode number.
-            n_episodes : int
-                Total number of episodes.
-            rewards : list
-                List of cumulative rewards obtained during prior episodes.
+                Episode number.
+            reward : float
+                Episode cumulative reward.
+            **kwargs
+                Additional keyword arguments.
         """
         super().__init__()
         self._n_episodes = n_episodes
@@ -83,7 +83,7 @@ class SimpleAgent(Agent):
             episode_start = time.perf_counter()
 
             self._before_episode(cur_episode)
-            reward = self._run_episode(cur_episode)
+            reward, n_episode_steps = self._run_episode(cur_episode)
             self._after_episode()
 
             episode_stop = time.perf_counter()
@@ -92,7 +92,13 @@ class SimpleAgent(Agent):
             rewards.append(reward)
 
             if callable(self._callback):
-                self._callback(cur_episode, self._n_episodes, rewards)
+                kwargs = {
+                    'n_episode_steps': n_episode_steps,
+                    'global_step': self._global_step,
+                    'rewards': rewards,
+                    'n_episodes': self._n_episodes
+                }
+                self._callback(cur_episode, reward, **kwargs)
 
         rewards = np.array(rewards, np.float32)
         stats = np.array(stats)
@@ -106,7 +112,14 @@ class SimpleAgent(Agent):
         Parameters
         ----------
         cur_episode : int
-            Current episode number.
+            Episode number.
+
+        Returns
+        -------
+        float
+            Episode cumulative reward.
+        int
+            Number of episode steps.
         """
         cur_step = 0
         reward = 0
@@ -150,7 +163,7 @@ class SimpleAgent(Agent):
             cur_step += 1
             self._global_step += 1
 
-        return reward
+        return reward, cur_step
 
     def _reset(self):
         """Bring the environment to its initial state.
@@ -226,14 +239,22 @@ class SimpleAgent(Agent):
 
         Parameters
         ----------
-        **kwargs : dict
-            Contains `state`, `action`, `reward`, `next state`,
-            and `terminal flag`.
+        **kwargs
+            s
+                State.
+            a
+                Action.
+            r
+                Reward.
+            s1
+                Next state.
+            is_terminal
+                Terminal flag.
 
         Returns
         -------
         tuple
-            Tuple of (`s`, `a`, `r`, `s1`, `terminal_flag`).
+            Tuple of (`s`, `a`, `r`, `s1`, `is_terminal`).
         """
         s = kwargs['s']
         a = kwargs['a']
