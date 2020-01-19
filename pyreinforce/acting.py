@@ -100,13 +100,14 @@ class DecayingEpsGreedyPolicy(EpsGreedyPolicy):
         q : array_like
             `1 x N` array of `Q`-values.
         **kwargs
-            Keyword arguments:
             cur_step : int
                 Current step within episode.
             cur_episode: int
                 Current episode.
             n_episodes : int
                 Total number of episodes.
+            global_step : int
+                Global step across all episodes.
 
         Returns
         -------
@@ -121,6 +122,61 @@ class DecayingEpsGreedyPolicy(EpsGreedyPolicy):
             n_episodes = kwargs['n_episodes']
             self._eps = self._eps_end + (self._eps_start - self._eps_end) * (1 - cur_episode / n_episodes) ** self._eps_decay
 #             self._eps = self._eps_end + (self._eps_start - self._eps_end) * np.exp(-self._eps_decay * cur_episode)
+
+        return super().act(q, **kwargs)
+
+
+class CustomEpsGreedyPolicy(EpsGreedyPolicy):
+    """Select action according to epsilon greedy policy with custom epsilon."""
+
+    def __init__(self, get_eps):
+        """
+        Parameters
+        ----------
+        get_eps : func
+            Calculates epsilon given where the agent is in the learning process.
+
+            Keyword arguments
+            -----------------
+            cur_step : int
+                Current step within episode.
+            cur_episode: int
+                Current episode.
+            n_episodes : int
+                Total number of episodes.
+            global_step : int
+                Global step across all episodes.
+        """
+        super().__init__(None)
+
+        assert callable(get_eps), 'Expected function but got "{}"'.format(get_eps)
+
+        self._get_eps = get_eps
+
+    def act(self, q, **kwargs):
+        """Select action based on `Q`-values.
+
+        Parameters
+        ----------
+        q : array_like
+            `1 x N` array of `Q`-values.
+        **kwargs
+            cur_step : int
+                Current step within episode.
+            cur_episode: int
+                Current episode.
+            n_episodes : int
+                Total number of episodes.
+            global_step : int
+                Global step across all episodes.
+
+        Returns
+        -------
+        int
+            Random action with probability `self._eps`, index of
+            the maximum `Q`-value otherwise.
+        """
+        self._eps = self._get_eps(**kwargs)
 
         return super().act(q, **kwargs)
 
@@ -202,7 +258,6 @@ class OrnsteinUhlenbeckPolicy(ActingPolicy):
         a : array
             `1 x N` array of actions.
         **kwargs
-            Keyword arguments:
             cur_step : int
                 Current step within episode.
 

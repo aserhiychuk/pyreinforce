@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from pyreinforce.acting import EpsGreedyPolicy, DecayingEpsGreedyPolicy,\
-    SoftmaxPolicy, OrnsteinUhlenbeckPolicy
+    CustomEpsGreedyPolicy, SoftmaxPolicy, OrnsteinUhlenbeckPolicy
 
 
 class EpsGreedyPolicyTest(unittest.TestCase):
@@ -85,6 +85,52 @@ class DecayingEpsGreedyPolicyTest(unittest.TestCase):
                 arg_max = np.argmax(q)
                 action = self._acting.act(q, cur_step=0, cur_episode=episode,
                                           n_episodes=n_episodes)
+
+                if arg_max == action:
+                    n_max_q += 1
+                else:
+                    n_random += 1
+
+            actual = n_random / n_total
+
+            if self._acting._eps == 0:
+                self.assertEqual(0, actual)
+            else:
+                actual_deviation = abs((self._acting._eps - actual) / self._acting._eps)
+                self.assertLess(actual_deviation, max_deviation)
+
+
+class CustomEpsGreedyPolicyTest(unittest.TestCase):
+    def setUp(self):
+        def get_eps(**kwargs):
+            global_step = kwargs['global_step']
+
+            if global_step < 10:
+                return 0.9
+            elif global_step < 100:
+                return 0.5
+            else:
+                return 0.1
+
+        self._acting = CustomEpsGreedyPolicy(get_eps)
+
+    def test_act(self):
+        n_total = 10000
+        lowest_q = 1
+        highest_q = 10
+        n_actions = 100
+        n_episodes = 100
+        max_deviation = 0.1
+
+        for global_step in [9, 99, 999]:
+            n_max_q = 0
+            n_random = 0
+
+            for _ in range(n_total):
+                q = np.random.uniform(lowest_q, highest_q, size=(1, n_actions))
+                arg_max = np.argmax(q)
+                action = self._acting.act(q, cur_step=0, cur_episode=0, n_episodes=n_episodes,
+                                          global_step=global_step)
 
                 if arg_max == action:
                     n_max_q += 1
