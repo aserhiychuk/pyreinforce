@@ -27,13 +27,19 @@ class TestBrain(Brain):
 
         return self._np_random.uniform(size=(batch_size, self._n_outputs))
 
-    def train(self, states, targets, **kwargs):
-        assert states.shape[0] == targets.shape[0],\
-            'Batch size does not match. states: {}, targets: {}'.format(states.shape[0], targets.shape[0])
-        assert states.shape[1] == self._n_inputs,\
-            'States shape. expected: {}, actual: {}'.format(self._n_inputs, states.shape[1])
-        assert targets.shape[1] == self._n_outputs,\
-            'Targets shape. expected: {}, actual: {}'.format(self._n_outputs, targets.shape[1])
+    def train(self, states, actions, targets, **kwargs):
+        batch_size = states.shape[0]
+
+        expected_states_shape = (batch_size, self._n_inputs)
+        expected_actions_shape = (batch_size,)
+        expected_targets_shape = (batch_size, 1)
+
+        assert states.shape == expected_states_shape,\
+            'States shape. expected: {}, actual: {}'.format(expected_states_shape, states.shape)
+        assert actions.shape == expected_actions_shape,\
+            'Actions shape. expected: {}, actual: {}'.format(expected_actions_shape, actions.shape)
+        assert targets.shape == expected_targets_shape,\
+            'Targets shape. expected: {}, actual: {}'.format(expected_targets_shape, targets.shape)
 
         global_step = kwargs['global_step']
         train_freq = kwargs['train_freq']

@@ -135,31 +135,13 @@ class MonteCarloAgent(SimpleAgent):
         batch = np.array(batch)
         batch = np.reshape(batch, (-1, batch.shape[-1]))
 
-        states = np.stack(batch[:, 0])
-        qs = self._predict_q(states)
-        returns = self._get_targets(batch, qs)
+        s = np.stack(batch[:, 0])
+        a = batch[:, 1]
+        r = batch[:, 2]
+        r = np.expand_dims(r, axis=-1)
 
-        self._brain.train(states, returns, global_step=self._global_step,
+        self._brain.train(s, a, r, global_step=self._global_step,
                           train_freq=self._train_freq)
-
-    def _get_targets(self, batch, q):
-        """Compute MC returns for current states `s`.
-
-        Parameters
-        ----------
-        batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
-        q : array
-            `Q`-values for current states `s`.
-        """
-        target = np.empty_like(q)
-        target[:] = q
-        a = np.int32(batch[:, 1])
-        g = batch[:, 2]
-        ind = np.arange(batch.shape[0])
-        target[ind, a] = g
-
-        return target
 
     def _after_episode(self):
         """Compute discounted rewards and flush the episode buffer."""

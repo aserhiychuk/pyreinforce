@@ -135,34 +135,32 @@ class TdAgent(SimpleAgent):
         batch = np.array(batch)
         batch = np.reshape(batch, (-1, batch.shape[-1]))
 
-        states = np.stack(batch[:, 0])
-        states1 = np.stack(batch[:, 3])
-        qs = self._predict_q(states)
-        qs1 = self._predict_q(states1)
-        targets = self._get_targets(batch, qs, qs1)
+        s = np.stack(batch[:, 0])
+        a = batch[:, 1]
+        r = batch[:, 2]
+        s1 = np.stack(batch[:, 3])
+        s1_mask = 1 - batch[:, 4]
+        t = self._get_td_targets(r, s1, s1_mask)
+        t = np.expand_dims(t, axis=-1)
 
-        self._brain.train(states, targets, global_step=self._global_step,
+        self._brain.train(s, a, t, global_step=self._global_step,
                           train_freq=self._train_freq)
 
-    def _get_targets(self, batch, q, q1):
+    def _get_td_targets(self, r, s1, s1_mask):
         """Compute TD targets for current states `s`.
 
         Parameters
         ----------
-        batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
-        q : array
-            `Q`-values for current states `s`.
-        q1 : array
-            `Q`-values for next states `s1`.
+        r : array
+            Rewards.
+        s1 : array
+            Next states.
+        s1_mask : array
+            Next states masks.
         """
-        target = np.empty_like(q)
-        target[:] = q
-        a = np.int32(batch[:, 1])
-        r = batch[:, 2]
-        s1_mask = 1 - batch[:, 4]
-        ind = np.arange(batch.shape[0])
-        target[ind, a] = r + s1_mask * self._gamma * np.max(q1, axis=1)
+        q1 = self._predict_q(s1)
+
+        target = r + s1_mask * self._gamma * np.max(q1, axis=1)
 
         return target
 
