@@ -121,7 +121,7 @@ class MonteCarloAgent(SimpleAgent):
         if self._global_step % self._train_freq == 0:
             batch = self._replay_memory.sample()
 
-            if len(batch) > 0:
+            if batch is not None:
                 self._train(batch)
 
     def _train(self, batch):
@@ -129,16 +129,10 @@ class MonteCarloAgent(SimpleAgent):
 
         Parameters
         ----------
-        batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
+        batch : tuple of arrays
+            Tuple of `states`, `actions`, `rewards`, `next states`, `next states masks`.
         """
-        batch = np.array(batch)
-        batch = np.reshape(batch, (-1, batch.shape[-1]))
-
-        s = np.stack(batch[:, 0])
-        a = batch[:, 1]
-        r = batch[:, 2]
-        r = np.expand_dims(r, axis=-1)
+        s, a, r, _, _ = batch
 
         self._brain.train(s, a, r, global_step=self._global_step,
                           train_freq=self._train_freq)

@@ -92,12 +92,22 @@ class Memory(object):
 
         Returns
         -------
-        list
-            Batch of `self._batch_size` experiences.
+        tuple of arrays
+            Tuple of `states`, `actions`, `rewards`, `next states`, `next states masks`,
+            if there is not less than `batch_size` experiences available, `None` otherwise.
         """
-        batch_size = min(self._batch_size, len(self._samples))
+        if len(self._samples) < self._batch_size:
+            return None
 
-        return self._random.sample(self._samples, batch_size)
+        batch = self._random.sample(self._samples, self._batch_size)
+        batch = np.array(batch)
+        s = np.stack(batch[:, 0])
+        a = batch[:, 1]
+        r = batch[:, 2]
+        s1 = np.stack(batch[:, 3])
+        s1_mask = 1 - batch[:, 4]
+
+        return s, a, r, s1, s1_mask
 
     def _flush(self):
         """Append all pending experiences to the memory."""
@@ -173,14 +183,33 @@ class EpisodicMemory(Memory):
 
         Returns
         -------
-        list
-            Batch of `self._batch_size` sequences, where each sequence
-            consists of `self._n_time_steps` experiences.
+        tuple of arrays
+            Tuple of `states`, `actions`, `rewards`, `next states`, `next states masks`,
+            if there is not less than `batch_size` experiences available, `None` otherwise.
         """
-        batch = super().sample()
-        batch = [self._sample_time_steps(episode) for episode in batch]
+        if len(self._samples) < self._batch_size:
+            return None
 
-        return batch
+        batch = self._random.sample(self._samples, self._batch_size)
+        batch = [self._sample_time_steps(episode) for episode in batch]
+        batch = np.array(batch)
+
+        s = np.reshape(batch[:, :, 0], (self._batch_size * self._n_time_steps,))
+        s = np.stack(s)
+        new_shape = (self._batch_size, self._n_time_steps) + s.shape[1:]
+        s = np.reshape(s, new_shape)
+
+        a = batch[:, -1, 1]
+        r = batch[:, -1, 2]
+
+        s1 = np.reshape(batch[:, :, 3], (self._batch_size * self._n_time_steps,))
+        s1 = np.stack(s1)
+        new_shape = (self._batch_size, self._n_time_steps) + s1.shape[1:]
+        s1 = np.reshape(s1, new_shape)
+
+        s1_mask = 1 - batch[:, -1, 4]
+
+        return s, a, r, s1, s1_mask
 
     def _sample_time_steps(self, episode):
         """Sample a sequence of `self._n_time_steps` consecutive experiences

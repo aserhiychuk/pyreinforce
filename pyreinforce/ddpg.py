@@ -153,7 +153,7 @@ class DdpgAgent(SimpleAgent):
         if self._global_step % self._train_freq == 0:
             batch = self._replay_memory.sample()
 
-            if len(batch) > 0:
+            if batch is not None:
                 self._train(batch)
 
     def _train(self, batch):
@@ -161,17 +161,14 @@ class DdpgAgent(SimpleAgent):
 
         Parameters
         ----------
-        batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
+        batch : tuple of arrays
+            Tuple of `states`, `actions`, `rewards`, `next states`, `next states masks`.
         """
-        batch = np.array(batch)
-        batch = np.reshape(batch, (-1, batch.shape[-1]))
+        s, a, r, s1, s1_mask = batch
 
-        s = np.stack(batch[:, 0])
-        a = np.stack(batch[:, 1])
-        r = np.vstack(batch[:, 2])
-        s1 = np.stack(batch[:, 3])
-        s1_mask = 1 - np.vstack(batch[:, 4])
+        a = np.reshape(a, (-1, 1))
+        r = np.reshape(r, (-1, 1))
+        s1_mask = np.reshape(s1_mask, (-1, 1))
 
         a1 = self._predict_a(s1, True)
         q1 = self._predict_q(s1, a1, True)

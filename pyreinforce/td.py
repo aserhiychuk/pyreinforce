@@ -121,7 +121,7 @@ class TdAgent(SimpleAgent):
         if self._global_step % self._train_freq == 0:
             batch = self._replay_memory.sample()
 
-            if len(batch) > 0:
+            if batch is not None:
                 self._train(batch)
 
     def _train(self, batch):
@@ -129,19 +129,12 @@ class TdAgent(SimpleAgent):
 
         Parameters
         ----------
-        batch : list
-            List of tuples (`s`, `a`, `r`, `s1`, `terminal_flag`).
+        batch : tuple of arrays
+            Tuple of `states`, `actions`, `rewards`, `next states`, `next states masks`.
         """
-        batch = np.array(batch)
-        batch = np.reshape(batch, (-1, batch.shape[-1]))
+        s, a, r, s1, s1_mask = batch
 
-        s = np.stack(batch[:, 0])
-        a = batch[:, 1]
-        r = batch[:, 2]
-        s1 = np.stack(batch[:, 3])
-        s1_mask = 1 - batch[:, 4]
         t = self._get_td_targets(r, s1, s1_mask)
-        t = np.expand_dims(t, axis=-1)
 
         self._brain.train(s, a, t, global_step=self._global_step,
                           train_freq=self._train_freq)

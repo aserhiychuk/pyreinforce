@@ -1,6 +1,8 @@
 import unittest
 import random
 
+import numpy as np
+
 from pyreinforce.memory import Memory, EpisodicMemory
 
 
@@ -43,10 +45,12 @@ class MemoryTest(unittest.TestCase):
             memory1.add(experience)
             memory2.add(experience)
 
+        # (s, a, r, s1, s1_mask)
         batch1 = memory1.sample()
         batch2 = memory2.sample()
 
-        self.assertListEqual(batch1, batch2)
+        for b1, b2 in zip(batch1, batch2):
+            self.assertTrue(np.array_equal(b1, b2))
 
     def test_add_honors_capacity(self):
         n_experiences = self._capacity + 3
@@ -79,25 +83,36 @@ class MemoryTest(unittest.TestCase):
         self.assertIn(experience, self._memory._buffer)
 
     def test_sample_via_memory(self):
-        experience = _random_experience()
-        self._memory.add(experience)
+        experience1 = _random_experience()
+        experience2 = _random_experience()
+        self._memory.add(experience1)
+        self._memory.add(experience2)
 
-        actual = self._memory.sample()
-        self.assertListEqual([experience], actual)
+        s, a, r, s1, s1_mask = self._memory.sample()
+
+        self.assertEqual((2,), s.shape)
+        self.assertEqual((2,), a.shape)
+        self.assertEqual((2,), r.shape)
+        self.assertEqual((2,), s1.shape)
+        self.assertEqual((2,), s1_mask.shape)
 
     def test_sample_ignores_buffer(self):
-        experience = _random_experience()
-        self._memory.add(experience, buffer=True)
+        for _ in range(5 * self._batch_size):
+            experience = _random_experience()
+            self._memory.add(experience, buffer=True)
 
         actual = self._memory.sample()
-        self.assertListEqual([], actual)
+        self.assertIsNone(actual)
 
     def test_sample_honors_batch_size(self):
         for _ in range(self._capacity):
             self._memory.add(_random_experience())
 
+        # (s, a, r, s1, s1_mask)
         batch = self._memory.sample()
-        self.assertEqual(self._batch_size, len(batch))
+
+        for b in batch:
+            self.assertEqual(self._batch_size, b.shape[0])
 
     def test_flush_no_disount(self):
         experience = _random_experience()
@@ -153,25 +168,58 @@ class EpisodicMemoryTest(unittest.TestCase):
     def test_sample(self):
         for episode_no in range(_random.randint(10, 20)):
             for step_no in range(_random.randint(10, 40)):
-                self._memory.add(_random_experience(s=(episode_no, step_no)))
+                self._memory.add(_random_experience(s=(episode_no, step_no),
+                                                    s1=(episode_no, step_no + 1)))
 
             self._memory.flush()
 
-        batch = self._memory.sample()
-        self.assertEqual(self._batch_size, len(batch))
-        
-        for episode in batch:
-            # s = (episode_no, step_no)
-            states = [s for s, _, _, _, _ in episode]
-            self.assertEqual(self._n_time_steps, len(states))
+        s, a, r, s1, s1_mask = self._memory.sample()
 
-            episode_numbers = [episode_no for episode_no, _ in states]
-            is_same_episode = all(episode_no == episode_numbers[0] for episode_no in episode_numbers)
-            self.assertTrue(is_same_episode)
+        # Sample states:
+        #
+        # s = [episode_no, step_no]
+        #
+        # [[[ 5  7] [ 5  8] [ 5  9] [ 5 10]]
+        #  [[ 4  8] [ 4  9] [ 4 10] [ 4 11]]
+        #  [[18 11] [18 12] [18 13] [18 14]]
+        #  [[16 18] [16 19] [16 20] [16 21]]
+        #  [[ 8 25] [ 8 26] [ 8 27] [ 8 28]]
+        #  [[10 24] [10 25] [10 26] [10 27]]
+        #  [[ 7  0] [ 7  1] [ 7  2] [ 7  3]]
+        #  [[13  1] [13  2] [13  3] [13  4]]]
+        self.assertEqual((self._batch_size, self._n_time_steps, 2), s.shape)
+        self.assertEqual((self._batch_size,), a.shape)
+        self.assertEqual((self._batch_size,), r.shape)
+        self.assertEqual((self._batch_size, self._n_time_steps, 2), s1.shape)
+        self.assertEqual((self._batch_size,), s1_mask.shape)
 
-            step_numbers = [step_no for _, step_no in states]
-            is_consecutive_steps = all(step_numbers[0] == (step_no - index) for index, step_no in enumerate(step_numbers))
-            self.assertTrue(is_consecutive_steps)
+        # Sample episode numbers:
+        # [[ 5  5  5  5]
+        #  [ 4  4  4  4]
+        #  [18 18 18 18]
+        #  [16 16 16 16]
+        #  [ 8  8  8  8]
+        #  [10 10 10 10]
+        #  [ 7  7  7  7]
+        #  [13 13 13 13]]
+        episode_numbers = s[:, :, 0]
+        init_episode_no = episode_numbers[:, 0]
+        init_episode_no = np.reshape(init_episode_no, (-1, 1))
+        is_same_episode = np.all(episode_numbers == init_episode_no)
+        self.assertTrue(is_same_episode)
+
+        # Sample step numbers:
+        # [[ 7  8  9 10]
+        #  [ 8  9 10 11]
+        #  [11 12 13 14]
+        #  [18 19 20 21]
+        #  [25 26 27 28]
+        #  [24 25 26 27]
+        #  [ 0  1  2  3]
+        #  [ 1  2  3  4]]
+        step_numbers = s[:, :, 1]
+        is_consecutive_steps = np.all(np.diff(step_numbers) == 1)
+        self.assertTrue(is_consecutive_steps)
 
     def test_flush(self):
         episode = [_random_experience() for _ in range(10)]
