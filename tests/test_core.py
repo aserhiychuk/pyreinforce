@@ -29,11 +29,7 @@ class TestConverter(Converter):
         return a * 10
 
     def convert_experience(self, experience, info=None):
-        s = experience['s']
-        a = experience['a']
-        r = experience['r']
-        s1 = experience['s1']
-        is_terminal = experience['is_terminal']
+        s, a, r, s1, is_terminal = experience
 
         if a < 0:
             r = -1
@@ -42,13 +38,7 @@ class TestConverter(Converter):
         else:
             r = 0
 
-        return {
-            's': s,
-            'a': a,
-            'r': r,
-            's1': s1,
-            'is_terminal': is_terminal
-        }
+        return s, a, r, s1, is_terminal
 
 
 class TestAgent(SimpleAgent):

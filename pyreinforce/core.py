@@ -132,10 +132,7 @@ class SimpleAgent(Agent):
         while not done:
             a = self._act(s, cur_step, cur_episode)
 
-            experience = {
-                's': s,
-                'a': a
-            }
+            experience = (s, a)
 
             if self._converter:
                 a = self._converter.convert_action(a)
@@ -145,16 +142,11 @@ class SimpleAgent(Agent):
             if self._converter:
                 s1 = self._converter.convert_state(s1, info)
 
-            experience.update({
-                'r': r,
-                's1': s1,
-                'is_terminal': done
-            })
+            experience += (r, s1, done)
 
             if self._converter:
                 experience = self._converter.convert_experience(experience, info)
 
-            experience = self._create_experience(**experience)
             self._observe(experience)
 
             s = s1
@@ -233,36 +225,6 @@ class SimpleAgent(Agent):
         raises `NotImplementedError` exception.
         """
         raise NotImplementedError
-
-    def _create_experience(self, **kwargs):
-        """Create an experience after taking a step in the environment.
-
-        Parameters
-        ----------
-        **kwargs
-            s
-                State.
-            a
-                Action.
-            r
-                Reward.
-            s1
-                Next state.
-            is_terminal
-                Terminal flag.
-
-        Returns
-        -------
-        tuple
-            Tuple of (`s`, `a`, `r`, `s1`, `is_terminal`).
-        """
-        s = kwargs['s']
-        a = kwargs['a']
-        r = kwargs['r']
-        s1 = kwargs['s1']
-        is_terminal = kwargs['is_terminal']
-
-        return (s, a, r, s1, is_terminal)
 
     def _observe(self, experience):
         """Called after taking a step in the environment.
