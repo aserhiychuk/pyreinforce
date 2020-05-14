@@ -1,9 +1,13 @@
 # PyReinforce
 **PyReinforce** is a collection of algorithms that can be used to solve a variety of different reinforcement learning problems.
 
-[![LunarLander-v2](assets/LunarLander-v2.gif?raw=true)](examples/TemporalDifference.ipynb)
-[![CartPole-v0](assets/CartPole-v0.gif?raw=true)](examples/MonteCarlo.ipynb)
-[![Pendulum-v0](assets/Pendulum-v0.gif?raw=true)](examples/DDPG.ipynb)
+| Breakout | Pong | Space Invaders |
+|:-:|:-:|:-:|
+| [![Breakout](assets/Breakout_160x210.gif?raw=true)](examples/Atari.ipynb) | [![Pong](assets/Pong_160x210.gif?raw=true)](examples/Atari.ipynb) | [![Space Invaders](assets/SpaceInvaders_160x210.gif?raw=true)](examples/Atari.ipynb) |
+
+| Cart Pole | Lunar Lander | Pendulum |
+|:-:|:-:|:-:|
+| [![Cart Pole](assets/CartPole_160x160.gif?raw=true)](examples/MonteCarlo.ipynb) | [![Lunar Lander](assets/LunarLander_160x160.gif?raw=true)](examples/TemporalDifference.ipynb) | [![Pendulum](assets/Pendulum_160x160.gif?raw=true)](examples/DDPG.ipynb) |
 
 ## Basics
 This is how [OpenAI Gym](https://gym.openai.com/) describes the reinforcement learning process:
@@ -32,6 +36,7 @@ pip install -e .
 * [Temporal Difference](examples/TemporalDifference.ipynb)
 * [Policy Gradient](examples/PolicyGradient.ipynb)
 * [Deep Deterministic Policy Gradient](examples/DDPG.ipynb)
+* [Deep Q-Learning](examples/Atari.ipynb)
 
 In order to run the examples you need to install dependencies:
 ```bash
