@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='PyReinforce',
-    version='0.1',
+    version='0.2',
     description='Deep Reinforcement Learning library for Python',
     author='Anton Serhiychuk',
     url='https://github.com/aserhiychuk/pyreinforce',
