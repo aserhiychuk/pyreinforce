@@ -7,7 +7,8 @@ class MonteCarloAgent(SimpleAgent):
     """Agent that implements Monte Carlo algorithm."""
 
     def __init__(self, n_episodes, env, brain, acting, replay_memory, gamma,
-                 converter=None, train_freq=1, callback=None):
+                 train_freq=1, validation_freq=None, validation_episodes=None,
+                 converter=None, callback=None):
         """
         Parameters
         ----------
@@ -23,10 +24,14 @@ class MonteCarloAgent(SimpleAgent):
             Experience replay memory.
         gamma : float
             Discount factor, must be between 0 and 1.
-        converter : Converter, optional
-            If specified, allows to pre/post process state, action, or experience.
         train_freq : int, optional
             Training frequency.
+        validation_freq : int, optional
+            Specifies how many episodes to run before a new validation run is performed.
+        validation_episodes : int, optional
+            Number of episodes in each validation run.
+        converter : Converter, optional
+            If specified, allows to pre/post process state, action, or experience.
         callback : callable, optional
             If specified, is called after each episode
             with the following parameters:
@@ -38,7 +43,8 @@ class MonteCarloAgent(SimpleAgent):
             **kwargs
                 Additional keyword arguments.
         """
-        super().__init__(n_episodes, env, converter, callback)
+        super().__init__(n_episodes, env, validation_freq, validation_episodes,
+                         converter, callback)
         self._brain = brain
         self._acting = acting
         self._replay_memory = replay_memory
@@ -58,26 +64,36 @@ class MonteCarloAgent(SimpleAgent):
         self._acting.seed(seed)
         self._replay_memory.seed(seed)
 
-    def _act(self, s, cur_step=0, cur_episode=0):
+    def _act(self, s, validation=False, **kwargs):
         """Choose action given current state of the environment.
 
         Parameters
         ----------
         s : obj
             Current state of the environment.
-        cur_step : int, optional
-            Current step within episode.
-        cur_episode : int, optional
-            Current episode.
+        validation : bool, optional
+            Indicator that is True during validation.
+        **kwargs
+            cur_step : int, optional
+                Current step within episode.
+            cur_episode : int, optional
+                Current episode.
+            n_episodes : int, optional
+                Total number of episodes.
+            global_step : int, optional
+                Global step across all episodes.
 
         Returns
         -------
         int
             Action according to action selection policy.
         """
-        q = self._predict_q(s, cur_step=cur_step)
-        a = self._acting.act(q, cur_step=cur_step, cur_episode=cur_episode,
-                             n_episodes=self._n_episodes, global_step=self._global_step)
+        q = self._predict_q(s, validation=validation, **kwargs)
+
+        if validation:
+            a = np.argmax(q)
+        else:
+            a = self._acting.act(q, **kwargs)
 
         return a
 

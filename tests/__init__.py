@@ -30,7 +30,7 @@ class TestEnv:
         self._global_step += 1
 
         s1 = self._get_current_state()
-        r = a / 100
+        r = a / 100 if isinstance(a, int) else 0
         done = (self._cur_step == self._cur_episode_max_steps)
         info = None
 

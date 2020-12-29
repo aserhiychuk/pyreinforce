@@ -42,13 +42,15 @@ class TestConverter(Converter):
 
 
 class TestAgent(SimpleAgent):
-    def __init__(self, n_episodes, env, converter=None, callback=None):
-        super().__init__(n_episodes, env, converter, callback)
+    def __init__(self, n_episodes, env, validation_freq=None, validation_episodes=None,
+                 converter=None, callback=None):
+        super().__init__(n_episodes, env, validation_freq, validation_episodes,
+                         converter, callback)
 
-    def _act(self, s, cur_step=0, cur_episode=0):
+    def _act(self, s, validation=False, **kwargs):
         expected_cur_episode, expected_cur_step, expected_global_step, _ = s
-        assert expected_cur_episode == cur_episode
-        assert expected_cur_step == cur_step
+        assert expected_cur_episode == kwargs['cur_episode']
+        assert expected_cur_step == kwargs['cur_step']
         assert expected_global_step == self._global_step
 
         return random.randint(-5, 5)
@@ -85,7 +87,7 @@ class SimpleAgentTest(unittest.TestCase):
         self._env = TestEnv()
         converter = TestConverter()
         episode_callback = self._create_episode_callback()
-        self._agent = TestAgent(self._n_episodes, self._env,
+        self._agent = TestAgent(self._n_episodes, self._env, None, None,
                                 converter, episode_callback)
 
     def _create_episode_callback(self):

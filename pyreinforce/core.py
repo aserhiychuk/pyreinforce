@@ -37,7 +37,8 @@ class Agent(object):
 class SimpleAgent(Agent):
     """Abstract agent that implements a typical RL flow."""
 
-    def __init__(self, n_episodes, env, converter=None, callback=None):
+    def __init__(self, n_episodes, env, validation_freq=None, validation_episodes=None,
+                 converter=None, callback=None):
         """
         Parameters
         ----------
@@ -45,6 +46,10 @@ class SimpleAgent(Agent):
             Number of episodes to train the agent for.
         env : obj
             Environment
+        validation_freq : int, optional
+            Specifies how many episodes to run before a new validation run is performed.
+        validation_episodes : int, optional
+            Number of episodes in each validation run.
         converter : Converter, optional
             If specified, allows to pre/post process state, action, or experience.
         callback : callable, optional
@@ -62,6 +67,8 @@ class SimpleAgent(Agent):
         self._n_episodes = n_episodes
         self._env = env
         self._converter = converter
+        self._validation_freq = validation_freq
+        self._validation_episodes = validation_episodes
         self._callback = callback
 
         self._global_step = 0
@@ -71,12 +78,14 @@ class SimpleAgent(Agent):
 
         Returns
         -------
-        list of floats
-            List of cumulative rewards per episode.
+        list
+            Validation rewards if `validation_freq` is specified,
+            training rewards otherwise.
         obj
             Some useful training statistics.
         """
-        rewards = []
+        training_rewards = []
+        validation_rewards = []
         stats = []
 
         for cur_episode in range(self._n_episodes):
@@ -89,18 +98,32 @@ class SimpleAgent(Agent):
             episode_stop = time.perf_counter()
             stats.append(episode_stop - episode_start)
 
-            rewards.append(reward)
+            training_rewards.append(reward)
 
             if callable(self._callback):
                 kwargs = {
                     'n_episode_steps': n_episode_steps,
                     'global_step': self._global_step,
-                    'rewards': rewards,
+                    'rewards': training_rewards,
                     'n_episodes': self._n_episodes
                 }
                 self._callback(cur_episode, reward, **kwargs)
 
-        rewards = np.array(rewards, np.float32)
+            if self._validation_freq and (cur_episode + 1) % self._validation_freq == 0:
+                self._before_validation()
+
+                rewards = []
+
+                for _ in range(self._validation_episodes):
+                    reward = self._validate_episode()
+                    rewards.append(reward)
+
+                self._after_validation(rewards)
+
+                validation_rewards.append(rewards)
+
+        rewards = validation_rewards if self._validation_freq else training_rewards
+
         stats = np.array(stats)
         stats = stats.min(), stats.max(), stats.mean(), stats.std()
 
@@ -130,7 +153,8 @@ class SimpleAgent(Agent):
             s = self._converter.convert_state(s)
 
         while not done:
-            a = self._act(s, cur_step, cur_episode)
+            a = self._act(s, cur_step=cur_step, cur_episode=cur_episode,
+                          n_episodes=self._n_episodes, global_step=self._global_step)
 
             experience = (s, a)
 
@@ -156,6 +180,40 @@ class SimpleAgent(Agent):
             self._global_step += 1
 
         return reward, cur_step
+
+    def _validate_episode(self):
+        """Run a single validation episode.
+
+        Returns
+        -------
+        float
+            Episode cumulative reward.
+        """
+        cur_step = 0
+        reward = 0
+        done = False
+        s = self._reset()
+
+        if self._converter:
+            s = self._converter.convert_state(s)
+
+        while not done:
+            a = self._act(s, validation=True, cur_step=cur_step)
+
+            if self._converter:
+                a = self._converter.convert_action(a)
+
+            s1, r, done, info = self._step(a)
+
+            if self._converter:
+                s1 = self._converter.convert_state(s1, info)
+
+            s = s1
+
+            reward += r
+            cur_step += 1
+
+        return reward
 
     def _reset(self):
         """Bring the environment to its initial state.
@@ -202,17 +260,24 @@ class SimpleAgent(Agent):
         """
         pass
 
-    def _act(self, s, cur_step=0, cur_episode=0):
+    def _act(self, s, validation=False, **kwargs):
         """Return action given state `s`.
 
         Parameters
         ----------
         s
             Current state.
-        cur_step : int, optional
-            Current step of the episode.
-        cur_episode : int, optional
-            Current episode.
+        validation : bool, optional
+            Indicator that is True during validation.
+        **kwargs
+            cur_step : int, optional
+                Current step within episode.
+            cur_episode : int, optional
+                Current episode.
+            n_episodes : int, optional
+                Total number of episodes.
+            global_step : int, optional
+                Global step across all episodes.
 
         Returns
         -------
@@ -251,4 +316,10 @@ class SimpleAgent(Agent):
 
     def _after_episode(self):
         """Called after an episode ends."""
+        pass
+
+    def _before_validation(self):
+        pass
+
+    def _after_validation(self, rewards):
         pass

@@ -35,7 +35,7 @@ class PolicyGradientAgent(SimpleAgent):
             **kwargs
                 Additional keyword arguments.
         """
-        super().__init__(n_episodes, env, converter, callback)
+        super().__init__(n_episodes, env, None, None, converter, callback)
         self._brain = brain
         self._acting = acting
         self._gamma = gamma
@@ -53,24 +53,31 @@ class PolicyGradientAgent(SimpleAgent):
 
         self._acting.seed(seed)
 
-    def _act(self, s, cur_step=0, cur_episode=0):
+    def _act(self, s, validation=False, **kwargs):
         """Choose action given current state of the environment.
 
         Parameters
         ----------
         s : obj
             Current state of the environment.
-        cur_step : int, optional
-            Current step within episode.
-        cur_episode : int, optional
-            Current episode.
+        validation : bool, optional
+            Currently not supported.
+        **kwargs
+            cur_step : int, optional
+                Current step within episode.
+            cur_episode : int, optional
+                Current episode.
+            n_episodes : int, optional
+                Total number of episodes.
+            global_step : int, optional
+                Global step across all episodes.
 
         Returns
         -------
         int
             Action according to action selection policy.
         """
-        probs = self._predict_policy(s, cur_step=cur_step)
+        probs = self._predict_policy(s, **kwargs)
         a = self._acting.act(probs)
 
         return a

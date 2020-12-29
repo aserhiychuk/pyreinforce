@@ -19,13 +19,13 @@ class TestBrain(Brain):
         self._np_random = np.random.RandomState()
         self._np_random.seed(seed)
 
+        self._weights = self._np_random.uniform(size=(n_inputs, n_outputs))
+
     def predict_q(self, states, **kwargs):
         if states.ndim < 2:
             states = np.expand_dims(states, axis=0)
 
-        batch_size = states.shape[0]
-
-        return self._np_random.uniform(size=(batch_size, self._n_outputs))
+        return np.matmul(states, self._weights)
 
     def train(self, states, actions, returns, **kwargs):
         batch_size = states.shape[0]
@@ -63,13 +63,58 @@ class MonteCarloAgentTest(unittest.TestCase):
         self._gamma = 0.99
         self._train_freq = 4
 
-        self._agent = MonteCarloAgent(self._n_episodes, self._env, self._brain, self._acting,
-                                      self._replay_memory, self._gamma, train_freq=self._train_freq)
-
-    def test_run(self):
-        rewards, _ = self._agent.run()
+    def test_run_without_validation(self):
+        validation_freq = None
+        validation_episodes = None
+        agent = MonteCarloAgent(self._n_episodes, self._env, self._brain, self._acting,
+                                self._replay_memory, self._gamma, self._train_freq,
+                                validation_freq, validation_episodes)
+        rewards, _ = agent.run()
 
         self.assertEqual(self._n_episodes, len(rewards))
+
+    def test_run_with_validation(self):
+        validation_freq = 2
+        validation_episodes = 10
+        agent = MonteCarloAgent(self._n_episodes, self._env, self._brain, self._acting,
+                                self._replay_memory, self._gamma, self._train_freq,
+                                validation_freq, validation_episodes)
+        rewards, _ = agent.run()
+        rewards = np.array(rewards)
+
+        n_validations = self._n_episodes // validation_freq
+        self.assertSequenceEqual([n_validations, validation_episodes], rewards.shape)
+
+    def test_act_training(self):
+        n_actions = 500
+        brain = TestBrain(self._n_states, n_actions)
+        eps = 0.1
+        acting = EpsGreedyPolicy(eps)
+        agent = MonteCarloAgent(self._n_episodes, self._env, brain, acting,
+                                self._replay_memory, self._gamma)
+
+        n_steps = 10000
+        s = np.random.uniform(size=(n_steps, self._n_states))
+        q = agent._predict_q(s)
+        eps_greedy_actions = [agent._act(s[i], False) for i in range(n_steps)]
+        eps_greedy_actions = np.array(eps_greedy_actions)
+        greedy_actions = np.argmax(q, axis=1)
+        n_random_actions =  np.count_nonzero(greedy_actions - eps_greedy_actions)
+        fraction_of_random_actions = n_random_actions / n_steps
+
+        self.assertAlmostEqual(eps, fraction_of_random_actions, delta=0.01)
+
+    def test_act_validation(self):
+        agent = MonteCarloAgent(self._n_episodes, self._env, self._brain, self._acting,
+                                self._replay_memory, self._gamma, self._train_freq)
+
+        n_steps = 10000
+        s = np.random.uniform(size=(n_steps, 3))
+        q = agent._predict_q(s)
+        actual_actions = [agent._act(s[i], True) for i in range(n_steps)]
+        expected_actions = np.argmax(q, axis=1).tolist()
+
+        self.assertListEqual(expected_actions, actual_actions)
 
 
 if __name__ == '__main__':
