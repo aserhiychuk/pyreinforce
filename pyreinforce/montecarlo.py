@@ -148,9 +148,9 @@ class MonteCarloAgent(SimpleAgent):
         batch : tuple of arrays
             Tuple of `states`, `actions`, `rewards`, `next states`, `next states masks`.
         """
-        s, a, r, _, _ = batch
+        s, a, g, _, _ = batch
 
-        self._brain.train(s, a, r, global_step=self._global_step,
+        self._brain.train(s, a, g, global_step=self._global_step,
                           train_freq=self._train_freq)
 
     def _after_episode(self):

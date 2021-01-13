@@ -182,10 +182,6 @@ class DdpgAgent(SimpleAgent):
         """
         s, a, r, s1, s1_mask = batch
 
-        a = np.reshape(a, (-1, 1))
-        r = np.reshape(r, (-1, 1))
-        s1_mask = np.reshape(s1_mask, (-1, 1))
-
         a1 = self._predict_a(s1, True)
         q1 = self._predict_q(s1, a1, True)
 

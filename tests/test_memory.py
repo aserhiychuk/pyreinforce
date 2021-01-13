@@ -12,11 +12,20 @@ _random = random.Random()
 _random.seed(_seed)
 
 def _random_experience(s=None, a=None, r=None, s1=None, is_terminal=None):
-    s = s or _random.random()
-    a = a or _random.randint(0, 10)
-    r = r or _random.random()
-    s1 = s1 or _random.random()
-    is_terminal = is_terminal or bool(_random.randint(0, 1))
+    if s is None:
+        s = _random.random()
+
+    if a is None:
+        a = _random.randint(0, 10)
+
+    if r is None:
+        r = _random.random()
+
+    if s1 is None:
+        s1 = _random.random()
+
+    if is_terminal is None:
+        is_terminal = bool(_random.randint(0, 1))
 
     return (s, a, r, s1, is_terminal)
 
@@ -82,19 +91,19 @@ class MemoryTest(unittest.TestCase):
         self.assertEqual(1, len(self._memory._buffer))
         self.assertIn(experience, self._memory._buffer)
 
-    def test_sample_via_memory(self):
-        experience1 = _random_experience()
-        experience2 = _random_experience()
+    def test_sample(self):
+        experience1 = _random_experience(s=[1, 2, 3], s1=[4, 5, 6])
+        experience2 = _random_experience(s=[7, 8, 9], s1=[10, 11, 12])
         self._memory.add(experience1)
         self._memory.add(experience2)
 
         s, a, r, s1, s1_mask = self._memory.sample()
 
-        self.assertEqual((2,), s.shape)
-        self.assertEqual((2,), a.shape)
-        self.assertEqual((2,), r.shape)
-        self.assertEqual((2,), s1.shape)
-        self.assertEqual((2,), s1_mask.shape)
+        self.assertEqual((2, 3), s.shape)
+        self.assertEqual((2, 1), a.shape)
+        self.assertEqual((2, 1), r.shape)
+        self.assertEqual((2, 3), s1.shape)
+        self.assertEqual((2, 1), s1_mask.shape)
 
     def test_sample_ignores_buffer(self):
         for _ in range(5 * self._batch_size):
@@ -188,10 +197,10 @@ class EpisodicMemoryTest(unittest.TestCase):
         #  [[ 7  0] [ 7  1] [ 7  2] [ 7  3]]
         #  [[13  1] [13  2] [13  3] [13  4]]]
         self.assertEqual((self._batch_size, self._n_time_steps, 2), s.shape)
-        self.assertEqual((self._batch_size,), a.shape)
-        self.assertEqual((self._batch_size,), r.shape)
+        self.assertEqual((self._batch_size, 1), a.shape)
+        self.assertEqual((self._batch_size, 1), r.shape)
         self.assertEqual((self._batch_size, self._n_time_steps, 2), s1.shape)
-        self.assertEqual((self._batch_size,), s1_mask.shape)
+        self.assertEqual((self._batch_size, 1), s1_mask.shape)
 
         # Sample episode numbers:
         # [[ 5  5  5  5]

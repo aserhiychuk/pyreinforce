@@ -31,8 +31,8 @@ class TestBrain(Brain):
         batch_size = states.shape[0]
 
         expected_states_shape = (batch_size, self._n_inputs)
-        expected_actions_shape = (batch_size,)
-        expected_returns_shape = (batch_size,)
+        expected_actions_shape = (batch_size, 1)
+        expected_returns_shape = (batch_size, 1)
 
         assert states.shape == expected_states_shape,\
             'States shape. expected: {}, actual: {}'.format(expected_states_shape, states.shape)

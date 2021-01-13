@@ -42,6 +42,7 @@ class TestBrain(Brain):
         return self._np_random.uniform(size=(batch_size, self._n_outputs))
 
     def train(self, states, actions, targets, **kwargs):
+        # TODO assert shape and not batch size only
         assert states.shape[0] == actions.shape[0],\
             'Batch size does not match. states: {}, actions: {}'.format(states.shape[0], actions.shape[0])
         assert states.shape[0] == targets.shape[0],\
@@ -63,7 +64,8 @@ class DdpgAgentTest(unittest.TestCase):
         self._n_episodes = 10
         self._env = TestEnv()
         self._n_states = 3
-        self._n_actions = 7
+        # TODO make sure agent supports more than one action
+        self._n_actions = 1
         self._brain = TestBrain(self._n_states, self._n_actions)
         self._shape = self._n_actions
         self._mu = 0.7

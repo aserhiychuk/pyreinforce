@@ -101,11 +101,21 @@ class Memory(object):
 
         batch = self._random.sample(self._samples, self._batch_size)
         batch = np.array(batch)
+
         s = np.stack(batch[:, 0])
+        s = np.reshape(s, (self._batch_size, -1))
+
         a = batch[:, 1]
+        a = np.reshape(a, (self._batch_size, 1))
+
         r = batch[:, 2]
+        r = np.reshape(r, (self._batch_size, 1))
+
         s1 = np.stack(batch[:, 3])
+        s1 = np.reshape(s1, (self._batch_size, -1))
+
         s1_mask = 1 - batch[:, 4]
+        s1_mask = np.reshape(s1_mask, (self._batch_size, 1))
 
         return s, a, r, s1, s1_mask
 
@@ -196,18 +206,20 @@ class EpisodicMemory(Memory):
 
         s = np.reshape(batch[:, :, 0], (self._batch_size * self._n_time_steps,))
         s = np.stack(s)
-        new_shape = (self._batch_size, self._n_time_steps) + s.shape[1:]
-        s = np.reshape(s, new_shape)
+        s = np.reshape(s, (self._batch_size, self._n_time_steps, -1))
 
         a = batch[:, -1, 1]
+        a = np.reshape(a, (self._batch_size, 1))
+
         r = batch[:, -1, 2]
+        r = np.reshape(r, (self._batch_size, 1))
 
         s1 = np.reshape(batch[:, :, 3], (self._batch_size * self._n_time_steps,))
         s1 = np.stack(s1)
-        new_shape = (self._batch_size, self._n_time_steps) + s1.shape[1:]
-        s1 = np.reshape(s1, new_shape)
+        s1 = np.reshape(s1, (self._batch_size, self._n_time_steps, -1))
 
         s1_mask = 1 - batch[:, -1, 4]
+        s1_mask = np.reshape(s1_mask, (self._batch_size, 1))
 
         return s, a, r, s1, s1_mask
 

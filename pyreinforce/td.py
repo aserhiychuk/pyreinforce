@@ -174,9 +174,9 @@ class TdAgent(SimpleAgent):
         """
         q1 = self._predict_q(s1)
 
-        target = r + s1_mask * self._gamma * np.max(q1, axis=1)
+        t = r + s1_mask * self._gamma * np.max(q1, axis=1, keepdims=True)
 
-        return target
+        return t
 
     def _after_episode(self):
         """Make sure all experiences are stored in the replay memory."""
