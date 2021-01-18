@@ -2,10 +2,10 @@ import unittest
 
 import numpy as np
 
-from tests import TestEnv
+from tests import TestEnv, GridWorld, LinearQBrain
 
 from pyreinforce.brain import Brain
-from pyreinforce.acting import EpsGreedyPolicy
+from pyreinforce.acting import EpsGreedyPolicy, DecayingEpsGreedyPolicy
 from pyreinforce.memory import Memory
 from pyreinforce import MonteCarloAgent
 
@@ -84,6 +84,60 @@ class MonteCarloAgentTest(unittest.TestCase):
 
         n_validations = self._n_episodes // validation_freq
         self.assertSequenceEqual([n_validations, validation_episodes], rewards.shape)
+
+    def test_run_learning(self):
+        seed = 123
+
+        n_states = 12
+        n_actions = 4
+        lr = 0.1
+
+        start_eps = 1
+        end_eps = 0
+        eps_decay = 2
+
+        replay_memory_size = 1000
+        replay_batch_size = 32
+
+        n_episodes = 50
+        gamma = 0.99
+        train_freq = 1
+        validation_freq = None
+        validation_episodes = None
+
+        env = GridWorld()
+        env.seed(seed)
+
+        brain = LinearQBrain(n_states, n_actions, lr, seed)
+        acting = DecayingEpsGreedyPolicy(start_eps, end_eps, eps_decay)
+        replay_memory = Memory(replay_memory_size, replay_batch_size)
+        agent = MonteCarloAgent(n_episodes, env, brain, acting, replay_memory, gamma, train_freq,
+                                validation_freq, validation_episodes)
+        agent.seed(seed)
+
+        _, _ = agent.run()
+
+        expected_policy = np.array([
+            [1,  1, 1, -1],
+            [0, -1, 3, -1],
+            [0,  3, 3,  2]
+        ])
+
+        actual_policy = np.zeros((3, 4))
+
+        for i in range(3):
+            for j in range(4):
+                if expected_policy[i, j] == -1:
+                    a = -1
+                else:
+                    s = np.array([i, j])
+                    q = brain.predict_q(s)
+                    a = np.argmax(q)
+
+                actual_policy[i, j] = a
+
+        policies_equal = np.array_equal(expected_policy, actual_policy)
+        self.assertTrue(policies_equal, 'GridWorld is not solved')
 
     def test_act_training(self):
         n_actions = 500
