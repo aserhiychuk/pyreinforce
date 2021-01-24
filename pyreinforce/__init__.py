@@ -4,3 +4,5 @@ from .td import TdAgent
 from .montecarlo import MonteCarloAgent
 from .policygrad import PolicyGradientAgent
 from .ddpg import DdpgAgent
+
+from .distributed.td import AsyncTdAgent

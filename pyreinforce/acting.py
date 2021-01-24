@@ -20,7 +20,7 @@ class ActingPolicy(object):
         self._np_random = np.random.RandomState()
         self._np_random.seed(seed)
 
-    def act(self, **kwargs):
+    def act(self, *args, **kwargs):
         """
         Select action given current state of the environment.
 
@@ -115,13 +115,10 @@ class DecayingEpsGreedyPolicy(EpsGreedyPolicy):
             Random action with probability `self._eps`, index of
             the maximum `Q`-value otherwise.
         """
-        cur_step = kwargs['cur_step']
-
-        if cur_step == 0:
-            cur_episode = kwargs['cur_episode']
-            n_episodes = kwargs['n_episodes']
-            self._eps = self._eps_end + (self._eps_start - self._eps_end) * (1 - cur_episode / n_episodes) ** self._eps_decay
-#             self._eps = self._eps_end + (self._eps_start - self._eps_end) * np.exp(-self._eps_decay * cur_episode)
+        cur_episode = kwargs['cur_episode']
+        n_episodes = kwargs['n_episodes']
+        self._eps = self._eps_end + (self._eps_start - self._eps_end) * (1 - cur_episode / n_episodes) ** self._eps_decay
+#         self._eps = self._eps_end + (self._eps_start - self._eps_end) * np.exp(-self._eps_decay * cur_episode)
 
         return super().act(q, **kwargs)
 
@@ -179,6 +176,40 @@ class CustomEpsGreedyPolicy(EpsGreedyPolicy):
         self._eps = self._get_eps(**kwargs)
 
         return super().act(q, **kwargs)
+
+
+class CompositeActingPolicy(ActingPolicy):
+    """Randomly select policy according to given probabilities and use it to select action."""
+
+    def __init__(self, policies, probs):
+        """
+        Parameters
+        ----------
+        policies : list
+            Underlying action selection policies.
+        probs : list
+            Probabilities associated with each policy.
+        """
+        super().__init__()
+
+        assert all([p > 0 for p in probs]), 'probs must be positive'
+        assert sum(probs) == 1, 'probs must sum to 1'
+        assert len(policies) == len(probs), 'policies and probs must have the same length'
+
+        self._policies = policies
+        self._probs = probs
+
+    def act(self, *args, **kwargs):
+        """Randomly select policy and let it select action.
+
+        Returns
+        -------
+        int
+            Action selected by the chosen policy.
+        """
+        policy = self._np_random.choice(self._policies, p=self._probs)
+
+        return policy.act(*args, **kwargs)
 
 
 class SoftmaxPolicy(ActingPolicy):

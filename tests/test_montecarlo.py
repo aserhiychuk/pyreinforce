@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from tests import TestEnv, GridWorld, LinearQBrain
+from tests import TestEnv, GridWorld, LinearQBrain, assert_grid_world_policy
 
 from pyreinforce.brain import Brain
 from pyreinforce.acting import EpsGreedyPolicy, DecayingEpsGreedyPolicy
@@ -117,27 +117,7 @@ class MonteCarloAgentTest(unittest.TestCase):
 
         _, _ = agent.run()
 
-        expected_policy = np.array([
-            [1,  1, 1, -1],
-            [0, -1, 3, -1],
-            [0,  3, 3,  2]
-        ])
-
-        actual_policy = np.zeros((3, 4))
-
-        for i in range(3):
-            for j in range(4):
-                if expected_policy[i, j] == -1:
-                    a = -1
-                else:
-                    s = np.array([i, j])
-                    q = brain.predict_q(s)
-                    a = np.argmax(q)
-
-                actual_policy[i, j] = a
-
-        policies_equal = np.array_equal(expected_policy, actual_policy)
-        self.assertTrue(policies_equal, 'GridWorld is not solved')
+        assert_grid_world_policy(brain.predict_q)
 
     def test_act_training(self):
         n_actions = 500

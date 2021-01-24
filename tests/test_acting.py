@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from pyreinforce.acting import EpsGreedyPolicy, DecayingEpsGreedyPolicy,\
-    CustomEpsGreedyPolicy, SoftmaxPolicy, OrnsteinUhlenbeckPolicy
+    CustomEpsGreedyPolicy, CompositeActingPolicy, SoftmaxPolicy, OrnsteinUhlenbeckPolicy
 
 
 class EpsGreedyPolicyTest(unittest.TestCase):
@@ -39,7 +39,7 @@ class EpsGreedyPolicyTest(unittest.TestCase):
         highest_q = 10
         n_actions = 100
 
-        n_max_q = 0
+        n_greedy = 0
         n_random = 0
 
         for _ in range(n_total):
@@ -48,7 +48,7 @@ class EpsGreedyPolicyTest(unittest.TestCase):
             action = self._acting.act(q)
 
             if arg_max == action:
-                n_max_q += 1
+                n_greedy += 1
             else:
                 n_random += 1
 
@@ -77,7 +77,7 @@ class DecayingEpsGreedyPolicyTest(unittest.TestCase):
         max_deviation = 0.1
 
         for episode in [0, 50, 100]:
-            n_max_q = 0
+            n_greedy = 0
             n_random = 0
 
             for _ in range(n_total):
@@ -87,7 +87,7 @@ class DecayingEpsGreedyPolicyTest(unittest.TestCase):
                                           n_episodes=n_episodes)
 
                 if arg_max == action:
-                    n_max_q += 1
+                    n_greedy += 1
                 else:
                     n_random += 1
 
@@ -123,7 +123,7 @@ class CustomEpsGreedyPolicyTest(unittest.TestCase):
         max_deviation = 0.1
 
         for global_step in [9, 99, 999]:
-            n_max_q = 0
+            n_greedy = 0
             n_random = 0
 
             for _ in range(n_total):
@@ -133,7 +133,7 @@ class CustomEpsGreedyPolicyTest(unittest.TestCase):
                                           global_step=global_step)
 
                 if arg_max == action:
-                    n_max_q += 1
+                    n_greedy += 1
                 else:
                     n_random += 1
 
@@ -144,6 +144,39 @@ class CustomEpsGreedyPolicyTest(unittest.TestCase):
             else:
                 actual_deviation = abs((self._acting._eps - actual) / self._acting._eps)
                 self.assertLess(actual_deviation, max_deviation)
+
+
+class CompositeActingPolicyTest(unittest.TestCase):
+    def setUp(self):
+        acting1 = EpsGreedyPolicy(0.1)
+        acting2 = EpsGreedyPolicy(0.2)
+        self._acting = CompositeActingPolicy([acting1, acting2], [0.7, 0.3])
+
+    def test_act(self):
+        n_total = 10000
+        lowest_q = 1
+        highest_q = 10
+        n_actions = 100
+        # law of total probability
+        expected = sum([policy._eps * prob for policy, prob in zip(self._acting._policies, self._acting._probs)])
+        max_deviation = 0.1
+
+        n_greedy = 0
+        n_random = 0
+
+        for _ in range(n_total):
+            q = np.random.uniform(lowest_q, highest_q, size=(1, n_actions))
+            arg_max = np.argmax(q)
+            action = self._acting.act(q)
+
+            if arg_max == action:
+                n_greedy += 1
+            else:
+                n_random += 1
+
+        actual = n_random / n_total
+
+        self.assertAlmostEqual(expected, actual, delta=expected * max_deviation)
 
 
 class SoftmaxPolicyTest(unittest.TestCase):

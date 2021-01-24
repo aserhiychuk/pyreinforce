@@ -48,6 +48,31 @@ class TestEnv:
         return state
 
 
+
+def assert_grid_world_policy(predict_q):
+    expected_policy = np.array([
+        [1,  1, 1, -1],
+        [0, -1, 3, -1],
+        [0,  3, 3,  2]
+    ])
+
+    actual_policy = np.zeros((3, 4))
+
+    for i in range(3):
+        for j in range(4):
+            if expected_policy[i, j] == -1:
+                a = -1
+            else:
+                s = np.array([i, j], ndmin=2)
+                q = predict_q(s)
+                a = np.argmax(q)
+
+            actual_policy[i, j] = a
+
+    policies_equal = np.array_equal(expected_policy, actual_policy)
+    assert policies_equal, 'GridWorld is not solved'
+
+
 class GridWorld:
 #     +---+---+---+---+
 #     |   |   |   | +1|
@@ -57,6 +82,7 @@ class GridWorld:
 #     |   |   |   |   |
 #     +---+---+---+---+
 
+#     True policy, gamma=0.99
 #     +--------+--------+--------+--------+
 #     | RIGHT  | RIGHT  | RIGHT  |    +1  |
 #     +--------+--------+--------+--------+
@@ -158,6 +184,10 @@ class LinearQBrain:
         return q
 
     def train(self, s, a, t, **kwargs):
+        grads = self.compute_gradients(s, a, t)
+        self.apply_gradients(grads)
+
+    def compute_gradients(self, s, a, t, **kwargs):
         batch_size = s.shape[0]
         batch_indices = np.arange(batch_size)
         # convert coordinates to numbers
@@ -178,4 +208,15 @@ class LinearQBrain:
         error = np.reshape(error, (batch_size, 1, 1))
 
         q_grad = x * self._w
-        self._w += self._lr * np.mean(error * q_grad, axis=0)
+        grad = np.mean(error * q_grad, axis=0)
+
+        return [grad]
+
+    def apply_gradients(self, grads):
+        self._w += self._lr * grads[0]
+
+    def get_weights(self):
+        return [self._w]
+
+    def set_weights(self, weights, **kwargs):
+        self._w = weights[0]
