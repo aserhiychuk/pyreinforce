@@ -4,6 +4,7 @@ from multiprocessing import shared_memory
 
 import numpy as np
 
+from pyreinforce.core import Callback
 from pyreinforce.distributed import DistributedAgent, WorkerAgent, SharedWeights
 
 from tests import TestEnv as DummyEnv
@@ -55,6 +56,57 @@ class DummyWorker(WorkerAgent):
         return []
 
 
+class DummyDistributedCallback(Callback):
+    def __init__(self, n_episodes, validation_freq, validation_episodes, n_workers):
+        self._n_episodes = n_episodes
+        self._validation_freq = validation_freq
+        self._validation_episodes = validation_episodes
+        self._n_workers = n_workers
+
+        self._n_validations = 0
+
+    def _assert_worker_no(self, actual_worker_no):
+        assert actual_worker_no <= self._n_workers - 1,\
+            f'worker_no. expected <= {self._n_workers - 1}, actual: {actual_worker_no}'
+
+    def on_before_run(self, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_after_run(self, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+        if self._validation_freq is not None:
+            expected_n_validations = self._n_episodes // self._validation_freq
+            assert expected_n_validations == self._n_validations,\
+                f'# of validations. expected: {expected_n_validations}, actual: {self._n_validations}'
+
+    def on_state_change(self, s, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_before_episode(self, episode_no, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_after_episode(self, episode_no, reward, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_before_validation(self, **kwargs):
+        if self._validation_freq is None:
+            self._test_case.fail('Validation is disabled')
+
+        self._assert_worker_no(kwargs['worker_no'])
+
+        self._n_validations += 1
+
+    def on_after_validation(self, rewards, **kwargs):
+        if self._validation_freq is None:
+            self._test_case.fail('Validation is disabled')
+
+        self._assert_worker_no(kwargs['worker_no'])
+        # validation load should be distributed between workers
+        assert len(rewards) <= self._validation_episodes,\
+            f'# of validation episodes. expected <= {self._validation_episodes}, actual: {len(rewards)}'
+
+
 def _create_env(worker_no=None):
     return DummyEnv()
 
@@ -67,21 +119,66 @@ class DistributedAgentTest(unittest.TestCase):
         self._n_episodes = 10
         self._train_freq = 5
         self._converter = None
-        self._callback = None
         self._n_workers = 4
 
-    def test_run(self):
+    def test_run_without_validation(self):
         validation_freq = None
         validation_episodes = None
+        callback = DummyDistributedCallback(self._n_episodes, validation_freq, validation_episodes, self._n_workers)
+
         agent = DistributedDummyAgent(self._n_episodes, _create_env, _create_brain, self._train_freq,
                                       validation_freq, validation_episodes,
-                                      self._converter, self._callback, self._n_workers)
+                                      self._converter, callback, self._n_workers)
         rewards, _ = agent.run()
 
         self.assertSequenceEqual(range(self._n_workers), sorted(rewards.keys()))
 
         for _, worker_rewards in rewards.items():
             self.assertEqual(self._n_episodes, len(worker_rewards))
+
+    def test_run_with_validation(self):
+        validation_freq = 2
+        validation_episodes = 3
+        callback = DummyDistributedCallback(self._n_episodes, validation_freq, validation_episodes, self._n_workers)
+
+        agent = DistributedDummyAgent(self._n_episodes, _create_env, _create_brain, self._train_freq,
+                                      validation_freq, validation_episodes,
+                                      self._converter, callback, self._n_workers)
+        rewards, _ = agent.run()
+        rewards = np.array(rewards)
+
+        n_validations = self._n_episodes // validation_freq
+        self.assertSequenceEqual([n_validations, validation_episodes], rewards.shape)
+
+
+class DummyWorkerCallback(Callback):
+    def __init__(self, test_case, expected_worker_no):
+        self._test_case = test_case
+        self._expected_worker_no = expected_worker_no
+
+    def _assert_worker_no(self, actual_worker_no):
+        self._test_case.assertEqual(self._expected_worker_no, actual_worker_no)
+
+    def on_before_run(self, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_after_run(self, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_state_change(self, s, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_before_episode(self, episode_no, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_after_episode(self, episode_no, reward, **kwargs):
+        self._assert_worker_no(kwargs['worker_no'])
+
+    def on_before_validation(self, **kwargs):
+        pass
+
+    def on_after_validation(self, rewards, **kwargs):
+        pass
 
 
 class WorkerAgentTest(unittest.TestCase):
@@ -98,13 +195,12 @@ class WorkerAgentTest(unittest.TestCase):
         validation_freq = None
         validation_episodes = None
         converter = None
-
-        def callback(cur_episode, reward, **kwargs):
-            assert worker_no == kwargs['worker_no']
+        callback = DummyWorkerCallback(self, worker_no)
 
         self._worker = DummyWorker(worker_no, conn_to_parent, shared_weights, barrier,
-                                   self._n_episodes, env, brain, train_freq, validation_freq,
-                                   validation_episodes, converter, callback)
+                                   self._n_episodes, env, brain, train_freq,
+                                   validation_freq, validation_episodes,
+                                   converter, callback)
 
     def test_run(self):
         rewards, _ = self._worker.run()

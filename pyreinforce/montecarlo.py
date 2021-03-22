@@ -153,6 +153,16 @@ class MonteCarloAgent(SimpleAgent):
         self._brain.train(s, a, g, global_step=self._global_step,
                           train_freq=self._train_freq)
 
-    def _after_episode(self):
-        """Compute discounted rewards and flush the episode buffer."""
+    def _after_episode(self, episode_no, reward):
+        """Compute discounted rewards and flush the episode buffer.
+
+        Parameters
+        ----------
+        episode_no : int
+            Episode number.
+        reward : float
+            Episode reward.
+        """
         self._replay_memory.flush(self._gamma)
+
+        super()._after_episode(episode_no, reward)

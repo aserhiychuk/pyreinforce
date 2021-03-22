@@ -9,7 +9,7 @@ from multiprocessing.managers import SharedMemoryManager
 
 import numpy as np
 
-from pyreinforce.core import Agent, SimpleAgent
+from pyreinforce.core import Agent, SimpleAgent, Callback
 
 
 class DistributedAgent(Agent):
@@ -38,7 +38,7 @@ class DistributedAgent(Agent):
             if validation_episodes < n_workers:
                 # n_workers = 4, validation_episodes = 3
                 # [1, 1, 1, 0]
-                self._validation_episodes = [1] * n_workers + [0] * (n_workers - validation_episodes)
+                self._validation_episodes = [1] * validation_episodes + [0] * (n_workers - validation_episodes)
             elif n_workers < validation_episodes:
                 # n_workers = 4, validation_episodes = 5
                 # [2, 1, 1, 1]
@@ -207,15 +207,11 @@ class WorkerAgent(SimpleAgent):
                  n_episodes, env, brain, train_freq, validation_freq=None, validation_episodes=None,
                  converter=None, callback=None):
 
-        if callable(callback):
-            def _callback(cur_episode, reward, **kwargs):
-                kwargs['worker_no'] = worker_no
-                callback(cur_episode, reward, **kwargs)
-        else:
-            _callback = None
+        if isinstance(callback, Callback):
+            callback = WorkerCallback(worker_no, callback)
 
         super().__init__(n_episodes, env, validation_freq, validation_episodes,
-                         converter, _callback)
+                         converter, callback)
 
         self._worker_no = worker_no
         self._conn_to_parent = conn_to_parent
@@ -309,6 +305,33 @@ class WorkerAgent(SimpleAgent):
 
         latest_weights = self._shared_weights.read_latest()
         self._brain.set_weights(latest_weights)
+
+
+class WorkerCallback(Callback):
+    def __init__(self, worker_no, callback):
+        self._worker_no = worker_no
+        self._callback = callback
+
+    def on_before_run(self, **kwargs):
+        self._callback.on_before_run(worker_no=self._worker_no, **kwargs)
+
+    def on_after_run(self, **kwargs):
+        self._callback.on_after_run(worker_no=self._worker_no, **kwargs)
+
+    def on_state_change(self, s, **kwargs):
+        self._callback.on_state_change(s, worker_no=self._worker_no, **kwargs)
+
+    def on_before_episode(self, episode_no, **kwargs):
+        self._callback.on_before_episode(episode_no, worker_no=self._worker_no, **kwargs)
+
+    def on_after_episode(self, episode_no, reward, **kwargs):
+        self._callback.on_after_episode(episode_no, reward, worker_no=self._worker_no, **kwargs)
+
+    def on_before_validation(self, **kwargs):
+        self._callback.on_before_validation(worker_no=self._worker_no, **kwargs)
+
+    def on_after_validation(self, rewards, **kwargs):
+        self._callback.on_after_validation(rewards, worker_no=self._worker_no, **kwargs)
 
 
 class SharedWeights:

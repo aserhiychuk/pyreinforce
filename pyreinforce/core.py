@@ -52,18 +52,11 @@ class SimpleAgent(Agent):
             Number of episodes in each validation run.
         converter : Converter, optional
             If specified, allows to pre/post process state, action, or experience.
-        callback : callable, optional
-            If specified, is called after each episode
-            with the following parameters:
-
-            cur_episode : int
-                Episode number.
-            reward : float
-                Episode cumulative reward.
-            **kwargs
-                Additional keyword arguments.
+        callback : Callback, optional
+            If specified, called at certain points during agent training.
         """
         super().__init__()
+
         self._n_episodes = n_episodes
         self._env = env
         self._converter = converter
@@ -71,7 +64,7 @@ class SimpleAgent(Agent):
         self._validation_episodes = validation_episodes
         self._callback = callback
 
-        self._global_step = 0
+        self._global_step = None
 
     def run(self):
         """Train the agent by running `self._n_episodes` episodes.
@@ -84,32 +77,27 @@ class SimpleAgent(Agent):
         obj
             Some useful training statistics.
         """
+        if self._callback:
+            self._callback.on_before_run(n_episodes=self._n_episodes)
+
         training_rewards = []
         validation_rewards = []
+        self._global_step = 0
         stats = []
 
-        for cur_episode in range(self._n_episodes):
+        for episode_no in range(self._n_episodes):
             episode_start = time.perf_counter()
 
-            self._before_episode(cur_episode)
-            reward, n_episode_steps = self._run_episode(cur_episode)
-            self._after_episode()
+            self._before_episode(episode_no)
+            reward, n_episode_steps = self._run_episode(episode_no)
+            self._after_episode(episode_no, reward)
 
             episode_stop = time.perf_counter()
             stats.append(episode_stop - episode_start)
 
             training_rewards.append(reward)
 
-            if callable(self._callback):
-                kwargs = {
-                    'n_episode_steps': n_episode_steps,
-                    'global_step': self._global_step,
-                    'rewards': training_rewards,
-                    'n_episodes': self._n_episodes
-                }
-                self._callback(cur_episode, reward, **kwargs)
-
-            if self._validation_freq and (cur_episode + 1) % self._validation_freq == 0:
+            if self._validation_freq and (episode_no + 1) % self._validation_freq == 0:
                 self._before_validation()
 
                 rewards = []
@@ -118,23 +106,26 @@ class SimpleAgent(Agent):
                     reward = self._validate_episode()
                     rewards.append(reward)
 
-                self._after_validation(rewards)
-
                 validation_rewards.append(rewards)
+
+                self._after_validation(rewards)
 
         rewards = validation_rewards if self._validation_freq else training_rewards
 
         stats = np.array(stats)
         stats = stats.min(), stats.max(), stats.mean(), stats.std()
 
+        if self._callback:
+            self._callback.on_after_run()
+
         return rewards, stats
 
-    def _run_episode(self, cur_episode):
+    def _run_episode(self, episode_no):
         """Run a single episode.
 
         Parameters
         ----------
-        cur_episode : int
+        episode_no : int
             Episode number.
 
         Returns
@@ -144,16 +135,16 @@ class SimpleAgent(Agent):
         int
             Number of episode steps.
         """
-        cur_step = 0
+        step_no = 0
         reward = 0
         done = False
-        s = self._reset()
+        s = self._reset(validation=False)
 
         if self._converter:
             s = self._converter.convert_state(s)
 
         while not done:
-            a = self._act(s, cur_step=cur_step, cur_episode=cur_episode,
+            a = self._act(s, cur_step=step_no, cur_episode=episode_no,
                           n_episodes=self._n_episodes, global_step=self._global_step)
 
             experience = (s, a)
@@ -161,7 +152,7 @@ class SimpleAgent(Agent):
             if self._converter:
                 a = self._converter.convert_action(a)
 
-            s1, r, done, info = self._step(a)
+            s1, r, done, info = self._step(a, validation=False, step_no=step_no)
 
             if self._converter:
                 s1 = self._converter.convert_state(s1, info)
@@ -176,10 +167,10 @@ class SimpleAgent(Agent):
             s = s1
 
             reward += r
-            cur_step += 1
+            step_no += 1
             self._global_step += 1
 
-        return reward, cur_step
+        return reward, step_no
 
     def _validate_episode(self):
         """Run a single validation episode.
@@ -189,21 +180,21 @@ class SimpleAgent(Agent):
         float
             Episode cumulative reward.
         """
-        cur_step = 0
+        step_no = 0
         reward = 0
         done = False
-        s = self._reset()
+        s = self._reset(validation=True)
 
         if self._converter:
             s = self._converter.convert_state(s)
 
         while not done:
-            a = self._act(s, validation=True, cur_step=cur_step)
+            a = self._act(s, validation=True, cur_step=step_no)
 
             if self._converter:
                 a = self._converter.convert_action(a)
 
-            s1, r, done, info = self._step(a)
+            s1, r, done, info = self._step(a, validation=True, step_no=step_no)
 
             if self._converter:
                 s1 = self._converter.convert_state(s1, info)
@@ -211,11 +202,11 @@ class SimpleAgent(Agent):
             s = s1
 
             reward += r
-            cur_step += 1
+            step_no += 1
 
         return reward
 
-    def _reset(self):
+    def _reset(self, validation=False):
         """Bring the environment to its initial state.
 
         Returns
@@ -225,9 +216,12 @@ class SimpleAgent(Agent):
         """
         s = self._env.reset()
 
+        if self._callback:
+            self._callback.on_state_change(s, validation=validation)
+
         return s
 
-    def _step(self, a):
+    def _step(self, a, validation=False, step_no=None):
         """Take step in the environment by performing action `a` on it.
 
         Parameters
@@ -248,17 +242,21 @@ class SimpleAgent(Agent):
         """
         s1, r, done, info = self._env.step(a)
 
+        if self._callback:
+            self._callback.on_state_change(s1, validation=validation, step_no=step_no)
+
         return s1, r, done, info
 
-    def _before_episode(self, cur_episode=0):
+    def _before_episode(self, episode_no):
         """Called before an episode starts.
 
         Parameters
         ----------
-        cur_episode : int, optional
+        episode_no : int
             Current episode number.
         """
-        pass
+        if self._callback:
+            self._callback.on_before_episode(episode_no)
 
     def _act(self, s, validation=False, **kwargs):
         """Return action given state `s`.
@@ -270,9 +268,9 @@ class SimpleAgent(Agent):
         validation : bool, optional
             Indicator that is True during validation.
         **kwargs
-            cur_step : int, optional
+            step_no : int, optional
                 Current step within episode.
-            cur_episode : int, optional
+            episode_no : int, optional
                 Current episode.
             n_episodes : int, optional
                 Total number of episodes.
@@ -302,24 +300,58 @@ class SimpleAgent(Agent):
         experience : tuple
             Tuple that contains information about the current step:
             s
-                State before performing action.
+                State before performing action `a`.
             a : int or obj
                 Action that was performed.
             r : float
-                Reward achieve by the action.
+                Reward achieved by the action `a`.
             s1
-                State after performing action.
+                State after performing action `a`.
             terminal_flag : bool
                 True if `s1` is a terminal state, False otherwise.
         """
         pass
 
-    def _after_episode(self):
-        """Called after an episode ends."""
-        pass
+    def _after_episode(self, episode_no, reward):
+        """Called after an episode ends.
+
+        Parameters
+        ----------
+        episode_no : int
+            Episode number.
+        reward : float
+            Episode reward.
+        """
+        if self._callback:
+            self._callback.on_after_episode(episode_no, reward, global_step=self._global_step)
 
     def _before_validation(self):
-        pass
+        if self._callback:
+            self._callback.on_before_validation()
 
     def _after_validation(self, rewards):
+        if self._callback:
+            self._callback.on_after_validation(rewards)
+
+
+class Callback:
+    def on_before_run(self, **kwargs):
+        pass
+
+    def on_after_run(self, **kwargs):
+        pass
+
+    def on_state_change(self, s, **kwargs):
+        pass
+
+    def on_before_episode(self, episode_no, **kwargs):
+        pass
+
+    def on_after_episode(self, episode_no, reward, **kwargs):
+        pass
+
+    def on_before_validation(self, **kwargs):
+        pass
+
+    def on_after_validation(self, rewards, **kwargs):
         pass

@@ -133,11 +133,21 @@ class PolicyGradientAgent(SimpleAgent):
 
         self._brain.train(states, actions, returns)
 
-    def _after_episode(self):
-        """Compute discounted rewards and perform a training step."""
+    def _after_episode(self, episode_no, reward):
+        """Compute discounted rewards and perform a training step.
+
+        Parameters
+        ----------
+        episode_no : int
+            Episode number.
+        reward : float
+            Episode reward.
+        """
         episode = np.array(self._episode_memory)
         episode[:, 2] = discount_rewards(episode[:, 2], self._gamma)
 
         self._train(episode)
 
         self._episode_memory = []
+
+        super()._after_episode(episode_no, reward)

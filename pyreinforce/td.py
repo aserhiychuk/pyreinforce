@@ -178,6 +178,16 @@ class TdAgent(SimpleAgent):
 
         return t
 
-    def _after_episode(self):
-        """Make sure all experiences are stored in the replay memory."""
+    def _after_episode(self, episode_no, reward):
+        """Make sure all experiences are stored in the replay memory.
+
+        Parameters
+        ----------
+        episode_no : int
+            Episode number.
+        reward : float
+            Episode reward.
+        """
         self._replay_memory.flush()
+
+        super()._after_episode(episode_no, reward)

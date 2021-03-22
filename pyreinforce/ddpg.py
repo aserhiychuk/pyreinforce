@@ -191,6 +191,16 @@ class DdpgAgent(SimpleAgent):
         self._brain.train(s, a, t, global_step=self._global_step,
                           train_freq=self._train_freq)
 
-    def _after_episode(self):
-        """Make sure all experiences are stored in the replay memory."""
+    def _after_episode(self, episode_no, reward):
+        """Make sure all experiences are stored in the replay memory.
+
+        Parameters
+        ----------
+        episode_no : int
+            Episode number.
+        reward : float
+            Episode reward.
+        """
         self._replay_memory.flush()
+
+        super()._after_episode(episode_no, reward)
