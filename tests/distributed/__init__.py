@@ -19,7 +19,7 @@ class DummyBrain:
     def get_weights(self):
         return self._weights
 
-    def set_weights(self, weights, **kwargs):
+    def set_weights(self, weights, context=None, **kwargs):
         pass
 
 
@@ -125,3 +125,6 @@ class AsyncLinearQBrain(LinearQBrain):
 #             assert e == a, f'Grads shape. expected: {e}, actual: {a}'
 
         super().apply_gradients(grads)
+
+    def set_weights(self, weights, context=None, **kwargs):
+        super().set_weights(weights)

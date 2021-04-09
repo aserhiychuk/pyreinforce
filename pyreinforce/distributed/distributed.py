@@ -293,7 +293,7 @@ class WorkerAgent(SimpleAgent):
 
         # update worker's weights
         weights = self._shared_weights.read(self._worker_no)
-        self._brain.set_weights(weights)
+        self._brain.set_weights(weights, 'training')
 
     def _compute_grads(self, batch):
         raise NotImplementedError
