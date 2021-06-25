@@ -107,11 +107,11 @@ class Memory(object):
 
         a = [a for _, a, _, _, _ in batch]
         a = np.array(a)
-        a = np.reshape(a, (self._batch_size, 1))
+        a = np.reshape(a, (self._batch_size, -1))
 
         r = [r for _, _, r, _, _ in batch]
         r = np.array(r)
-        r = np.reshape(r, (self._batch_size, 1))
+        r = np.reshape(r, (self._batch_size, -1))
 
         s1 = [s1 for _, _, _, s1, _ in batch]
         s1 = np.array(s1)
@@ -119,7 +119,7 @@ class Memory(object):
 
         s1_mask = [1 - done for _, _, _, _, done in batch]
         s1_mask = np.array(s1_mask)
-        s1_mask = np.reshape(s1_mask, (self._batch_size, 1))
+        s1_mask = np.reshape(s1_mask, (self._batch_size, -1))
 
         return s, a, r, s1, s1_mask
 
@@ -212,18 +212,18 @@ class EpisodicMemory(Memory):
 
         a = [experiences[-1][1] for experiences in batch]
         a = np.array(a)
-        a = np.reshape(a, (self._batch_size, 1))
+        a = np.reshape(a, (self._batch_size, -1))
 
         r = [experiences[-1][2] for experiences in batch]
         r = np.array(r)
-        r = np.reshape(r, (self._batch_size, 1))
+        r = np.reshape(r, (self._batch_size, -1))
 
         s1 = [[s1 for _, _, _, s1, _ in experiences] for experiences in batch]
         s1 = np.array(s1)
 
         s1_mask = [1 - experiences[-1][4] for experiences in batch]
         s1_mask = np.array(s1_mask)
-        s1_mask = np.reshape(s1_mask, (self._batch_size, 1))
+        s1_mask = np.reshape(s1_mask, (self._batch_size, -1))
 
         return s, a, r, s1, s1_mask
 

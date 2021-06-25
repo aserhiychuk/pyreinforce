@@ -13,14 +13,15 @@ from pyreinforce.core import Agent, SimpleAgent, Callback
 
 
 class DistributedAgent(Agent):
-    def __init__(self, n_episodes, env, brain, train_freq, validation_freq=None,
-                 validation_episodes=None, converter=None, callback=None,
-                 n_workers=None):
+    def __init__(self, n_episodes, env, brain, experience_buffer, train_freq,
+                 validation_freq=None, validation_episodes=None,
+                 converter=None, callback=None, n_workers=None):
         self._logger = logging.getLogger(f'{__name__}.{type(self).__name__}')
 
         self._n_episodes = n_episodes
         self._env = env
         self._brain = brain
+        self._experience_buffer = experience_buffer
         self._train_freq = train_freq
         self._converter = converter
         self._callback = callback
@@ -204,7 +205,8 @@ class DistributedAgent(Agent):
 
 class WorkerAgent(SimpleAgent):
     def __init__(self, worker_no, conn_to_parent, shared_weights, barrier,
-                 n_episodes, env, brain, train_freq, validation_freq=None, validation_episodes=None,
+                 n_episodes, env, brain, experience_buffer, train_freq,
+                 validation_freq=None, validation_episodes=None,
                  converter=None, callback=None):
 
         if isinstance(callback, Callback):
@@ -220,9 +222,8 @@ class WorkerAgent(SimpleAgent):
         self._brain = brain
         weights = self._shared_weights.read(self._worker_no)
         self._brain.set_weights(weights)
+        self._experience_buffer = experience_buffer
         self._train_freq = train_freq
-
-        self._experience_buffer = []
 
         self._latencies = []
 
@@ -237,38 +238,15 @@ class WorkerAgent(SimpleAgent):
         return rewards, info
 
     def _observe(self, experience):
-        self._experience_buffer.append(experience)
+        self._experience_buffer.add(experience)
 
         if (len(self._experience_buffer) == self._train_freq) or (experience[-1] is True):
-            self._train(self._experience_buffer)
+            batch = self._experience_buffer.get_batch_and_reset()
 
-            self._experience_buffer = []
+            if batch is not None:
+                self._train(batch)
 
     def _train(self, batch):
-        batch_size = len(batch)
-
-        s = [s for s, _, _, _, _ in batch]
-        s = np.array(s)
-        s = np.reshape(s, (batch_size, -1))
-
-        a = [a for _, a, _, _, _ in batch]
-        a = np.array(a)
-        a = np.reshape(a, (batch_size, 1))
-
-        r = [r for _, _, r, _, _ in batch]
-        r = np.array(r)
-        r = np.reshape(r, (batch_size, 1))
-
-        s1 = [s1 for _, _, _, s1, _ in batch]
-        s1 = np.array(s1)
-        s1 = np.reshape(s1, (batch_size, -1))
-
-        s1_mask = [1 - done for _, _, _, _, done in batch]
-        s1_mask = np.array(s1_mask)
-        s1_mask = np.reshape(s1_mask, (batch_size, 1))
-
-        batch = s, a, r, s1, s1_mask
-
         grads = self._compute_grads(batch)
 
         # persist gradients in shared memory
@@ -298,6 +276,14 @@ class WorkerAgent(SimpleAgent):
     def _compute_grads(self, batch):
         raise NotImplementedError
 
+    def _after_episode(self, episode_no, reward):
+        batch = self._experience_buffer.get_batch_and_reset(True)
+
+        if batch is not None:
+            self._train(batch)
+
+        super()._after_episode(episode_no, reward)
+
     def _before_validation(self):
         super()._before_validation()
 
@@ -305,6 +291,90 @@ class WorkerAgent(SimpleAgent):
 
         latest_weights = self._shared_weights.read_latest()
         self._brain.set_weights(latest_weights)
+
+
+class ExperienceBuffer:
+    def __init__(self):
+        self._buffer = []
+
+    def add(self, experience):
+        self._buffer.append(experience)
+
+    def get_batch_and_reset(self, is_terminal=False):
+        batch_size = len(self)
+
+        if batch_size == 0:
+            return None
+
+        s = [s for s, _, _, _, _ in self._buffer]
+        s = np.array(s)
+        s = np.reshape(s, (batch_size, -1))
+
+        a = [a for _, a, _, _, _ in self._buffer]
+        a = np.array(a)
+        a = np.reshape(a, (batch_size, 1))
+
+        r = [r for _, _, r, _, _ in self._buffer]
+        r = np.array(r)
+        r = np.reshape(r, (batch_size, 1))
+
+        s1 = [s1 for _, _, _, s1, _ in self._buffer]
+        s1 = np.array(s1)
+        s1 = np.reshape(s1, (batch_size, -1))
+
+        s1_mask = [1 - done for _, _, _, _, done in self._buffer]
+        s1_mask = np.array(s1_mask)
+        s1_mask = np.reshape(s1_mask, (batch_size, 1))
+
+        self._buffer = []
+
+        return s, a, r, s1, s1_mask
+
+    def __len__(self):
+        return len(self._buffer)
+
+
+class RecurrentExperienceBuffer(ExperienceBuffer):
+    def __init__(self, n_time_steps):
+        super().__init__()
+
+        self._n_time_steps = n_time_steps
+
+    def get_batch_and_reset(self, is_terminal=False):
+        batch_size = len(self)
+
+        if batch_size == 0:
+            if is_terminal:
+                self._buffer = []
+
+            return None
+
+        batch = [self._buffer[i:i + self._n_time_steps] for i in range(batch_size)]
+
+        s = [[s for s, _, _, _, _ in experiences] for experiences in batch]
+        s = np.array(s)
+
+        a = [a for _, a, _, _, _ in self._buffer[-batch_size:]]
+        a = np.array(a)
+        a = np.reshape(a, (batch_size, 1))
+
+        r = [r for _, _, r, _, _ in self._buffer[-batch_size:]]
+        r = np.array(r)
+        r = np.reshape(r, (batch_size, 1))
+
+        s1 = [[s1 for _, _, _, s1, _ in experiences] for experiences in batch]
+        s1 = np.array(s1)
+
+        s1_mask = [1 - done for _, _, _, _, done in self._buffer[-batch_size:]]
+        s1_mask = np.array(s1_mask)
+        s1_mask = np.reshape(s1_mask, (batch_size, 1))
+
+        self._buffer = self._buffer[batch_size:] if not is_terminal else []
+
+        return s, a, r, s1, s1_mask
+
+    def __len__(self):
+        return max(0, len(self._buffer) - self._n_time_steps + 1)
 
 
 class WorkerCallback(Callback):

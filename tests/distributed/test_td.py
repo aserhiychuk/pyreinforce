@@ -1,6 +1,7 @@
 import unittest
 
 from pyreinforce.acting import EpsGreedyPolicy, DecayingEpsGreedyPolicy
+from pyreinforce.distributed import ExperienceBuffer
 from pyreinforce.distributed.td import AsyncTdAgent, TdWorker
 
 from tests import TestEnv as DummyEnv, GridWorld, assert_grid_world_policy
@@ -29,6 +30,7 @@ class AsyncTdAgentTest(unittest.TestCase):
     def test_run(self):
         n_episodes = 10
         acting = EpsGreedyPolicy(0)
+        experience_buffer = ExperienceBuffer()
         gamma = 0.99
         train_freq = 5
         validation_freq = None
@@ -38,7 +40,8 @@ class AsyncTdAgentTest(unittest.TestCase):
         n_workers = 4
 
         agent = AsyncTdAgent(n_episodes, _create_dummy_env, _create_dummy_brain,
-                             acting, gamma, train_freq, validation_freq, validation_episodes,
+                             acting, experience_buffer, gamma, train_freq,
+                             validation_freq, validation_episodes,
                              converter, callback, n_workers)
         rewards, _ = agent.run()
 
@@ -52,6 +55,7 @@ class AsyncTdAgentTest(unittest.TestCase):
         end_eps = 0
         eps_decay = 1
         acting = DecayingEpsGreedyPolicy(start_eps, end_eps, eps_decay)
+        experience_buffer = ExperienceBuffer()
 
         n_episodes = 500
         gamma = 0.99
@@ -63,7 +67,8 @@ class AsyncTdAgentTest(unittest.TestCase):
         n_workers = 8
 
         agent = AsyncTdAgent(n_episodes, _create_grid_world_env, _create_grid_world_brain,
-                             acting, gamma, train_freq, validation_freq, validation_episodes,
+                             acting, experience_buffer, gamma, train_freq,
+                             validation_freq, validation_episodes,
                              converter, callback, n_workers)
         rewards, _ = agent.run()
 
@@ -86,14 +91,15 @@ class TdWorkerTest(unittest.TestCase):
         self._n_episodes = 10
         env = DummyEnv()
         acting = EpsGreedyPolicy(0)
+        experience_buffer = ExperienceBuffer()
         gamma = 0.99
         train_freq = 5
         converter = None
         callback = None
 
         self._worker = TdWorker(worker_no, conn_to_parent, shared_weights, barrier,
-                                self._n_episodes, env, brain, acting, gamma, train_freq,
-                                converter, callback)
+                                self._n_episodes, env, brain, acting, experience_buffer,
+                                gamma, train_freq, converter, callback)
 
     def test_run(self):
         rewards, _ = self._worker.run()
